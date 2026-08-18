@@ -1,0 +1,155 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:converters="clr-namespace:GerenciadorDeFinancas.Converters"
+             xmlns:dtos="clr-namespace:GerenciadorDeFinancas.Application.Dtos;assembly=GerenciadorDeFinancas.Application"
+             x:Class="GerenciadorDeFinancas.DashboardPage"
+             Title="Resumo">
+    <ContentPage.ToolbarItems>
+        <ToolbarItem Text="⚙"
+                     Clicked="OnSettingsClicked" />
+    </ContentPage.ToolbarItems>
+    <ContentPage.Resources>
+        <converters:MoneyToTextConverter x:Key="MoneyToText" />
+        <converters:HexToBrushConverter x:Key="ColorToBrush" />
+    </ContentPage.Resources>
+
+    <RefreshView x:Name="Refresh"
+                 Refreshing="OnRefreshing">
+        <ScrollView>
+            <VerticalStackLayout Padding="20" Spacing="16">
+
+                <Border BackgroundColor="{AppThemeBinding Light={StaticResource Primary}, Dark={StaticResource PrimaryDark}}"
+                        StrokeShape="RoundRectangle 12"
+                        StrokeThickness="0"
+                        Padding="16">
+                    <VerticalStackLayout Spacing="4">
+                        <Label Text="TOTAL DO MÊS"
+                               TextColor="{AppThemeBinding Light={StaticResource White}, Dark={StaticResource PrimaryDarkText}}"
+                               FontSize="14" />
+                        <Label x:Name="TotalLabel"
+                               TextColor="{AppThemeBinding Light={StaticResource White}, Dark={StaticResource PrimaryDarkText}}"
+                               FontSize="32"
+                               FontAttributes="Bold" />
+                        <Label x:Name="TotalDetailLabel"
+                               TextColor="{AppThemeBinding Light={StaticResource White}, Dark={StaticResource PrimaryDarkText}}"
+                               FontSize="13" />
+                    </VerticalStackLayout>
+                </Border>
+
+                <Grid ColumnDefinitions="*,*" ColumnSpacing="12" RowDefinitions="Auto,Auto" RowSpacing="12">
+                    <Border Grid.Row="0" Grid.Column="0"
+                            BackgroundColor="{AppThemeBinding Light={StaticResource Secondary}, Dark={StaticResource Gray900}}"
+                            StrokeShape="RoundRectangle 12"
+                            StrokeThickness="0"
+                            Padding="16">
+                        <VerticalStackLayout Spacing="4">
+                            <Label x:Name="PendingAmountLabel"
+                                   FontSize="18"
+                                   FontAttributes="Bold" />
+                            <Label Text="Pendentes"
+                                   FontSize="12"
+                                   TextColor="{AppThemeBinding Light={StaticResource Gray600}, Dark={StaticResource Gray300}}" />
+                            <Label x:Name="PendingCountLabel"
+                                   FontSize="12"
+                                   TextColor="{AppThemeBinding Light={StaticResource Gray600}, Dark={StaticResource Gray300}}" />
+                        </VerticalStackLayout>
+                    </Border>
+
+                    <Border Grid.Row="0" Grid.Column="1"
+                            BackgroundColor="{AppThemeBinding Light={StaticResource Secondary}, Dark={StaticResource Gray900}}"
+                            StrokeShape="RoundRectangle 12"
+                            StrokeThickness="0"
+                            Padding="16">
+                        <VerticalStackLayout Spacing="4">
+                            <Label x:Name="IgnoredLabel"
+                                   FontSize="18"
+                                   FontAttributes="Bold" />
+                            <Label Text="Ignoradas"
+                                   FontSize="12"
+                                   TextColor="{AppThemeBinding Light={StaticResource Gray600}, Dark={StaticResource Gray300}}" />
+                        </VerticalStackLayout>
+                    </Border>
+                </Grid>
+
+                <Label Text="DIVISÕES POR PESSOA"
+                       FontSize="13"
+                       TextColor="{AppThemeBinding Light={StaticResource Gray600}, Dark={StaticResource Gray300}}"
+                       FontAttributes="Bold"
+                       Margin="4,8,0,0" />
+
+                <CollectionView x:Name="PersonsView">
+                    <CollectionView.EmptyView>
+                        <Label Text="Nenhuma pessoa cadastrada ainda."
+                               FontSize="13"
+                               TextColor="{AppThemeBinding Light={StaticResource Gray400}, Dark={StaticResource Gray500}}" />
+                    </CollectionView.EmptyView>
+                    <CollectionView.ItemTemplate>
+                        <DataTemplate x:DataType="dtos:PersonTotal">
+                            <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="12" Padding="4,8">
+                                <Ellipse Grid.Column="0"
+                                         WidthRequest="12"
+                                         HeightRequest="12"
+                                         VerticalOptions="Center"
+                                         StrokeThickness="0"
+                                         Fill="{Binding Color, Converter={StaticResource ColorToBrush}}" />
+                                <Label Grid.Column="1"
+                                       Text="{Binding Name}"
+                                       FontSize="15"
+                                       VerticalOptions="Center" />
+                                <Label Grid.Column="2"
+                                       Text="{Binding TotalCents, Converter={StaticResource MoneyToText}}"
+                                       FontSize="15"
+                                       FontAttributes="Bold"
+                                       VerticalOptions="Center" />
+                            </Grid>
+                        </DataTemplate>
+                    </CollectionView.ItemTemplate>
+                </CollectionView>
+
+                <Label Text="TOTAIS POR CARTÃO"
+                       FontSize="13"
+                       TextColor="{AppThemeBinding Light={StaticResource Gray600}, Dark={StaticResource Gray300}}"
+                       FontAttributes="Bold"
+                       Margin="4,8,0,0" />
+
+                <CollectionView x:Name="CardsView">
+                    <CollectionView.EmptyView>
+                        <Label Text="Nenhuma compra classificada ainda."
+                               FontSize="13"
+                               TextColor="{AppThemeBinding Light={StaticResource Gray400}, Dark={StaticResource Gray500}}" />
+                    </CollectionView.EmptyView>
+                    <CollectionView.ItemTemplate>
+                        <DataTemplate x:DataType="dtos:CardTotal">
+                            <Grid ColumnDefinitions="*,Auto" ColumnSpacing="12" Padding="4,8">
+                                <Label Grid.Column="0"
+                                       Text="{Binding Name}"
+                                       FontSize="15"
+                                       VerticalOptions="Center" />
+                                <Label Grid.Column="1"
+                                       Text="{Binding TotalCents, Converter={StaticResource MoneyToText}}"
+                                       FontSize="15"
+                                       FontAttributes="Bold"
+                                       VerticalOptions="Center" />
+                            </Grid>
+                        </DataTemplate>
+                    </CollectionView.ItemTemplate>
+                </CollectionView>
+
+                <Button x:Name="EnableAccessButton"
+                        Text="Ativar acesso a notificações"
+                        Clicked="OnEnableNotificationAccessClicked"
+                        Margin="4,8,4,0"
+                        HorizontalOptions="Fill" />
+
+                <Button x:Name="TestNotificationButton"
+                        Text="Simular notificação Nubank"
+                        Clicked="OnTestNotificationClicked"
+                        Margin="4,8,4,0"
+                        HorizontalOptions="Fill"
+                        BackgroundColor="{StaticResource Gray300}" />
+
+            </VerticalStackLayout>
+        </ScrollView>
+    </RefreshView>
+</ContentPage>

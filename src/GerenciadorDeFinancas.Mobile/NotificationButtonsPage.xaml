@@ -1,0 +1,70 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:local="clr-namespace:GerenciadorDeFinancas"
+             x:Class="GerenciadorDeFinancas.NotificationButtonsPage"
+             Title="Botões de Notificação">
+    <ContentPage.ToolbarItems>
+        <ToolbarItem Text="Novo"
+                     Clicked="OnAddClicked" />
+    </ContentPage.ToolbarItems>
+
+    <RefreshView x:Name="Refresh"
+                 Refreshing="OnRefreshing">
+        <ScrollView>
+            <VerticalStackLayout Padding="20" Spacing="12">
+
+                <Label Text="Botões da notificação"
+                       FontSize="13"
+                       TextColor="{AppThemeBinding Light={StaticResource Gray600}, Dark={StaticResource Gray300}}"
+                       FontAttributes="Bold"
+                       Margin="4,0,0,0" />
+
+                <Label Text="Máximo de 3 botões. Cada botão atribui ou divide a compra entre as pessoas selecionadas."
+                       FontSize="12"
+                       TextColor="{AppThemeBinding Light={StaticResource Gray400}, Dark={StaticResource Gray500}}"
+                       Margin="4,0,0,0" />
+
+                <CollectionView x:Name="ButtonsView">
+                    <CollectionView.EmptyView>
+                        <Label Text="Nenhum botão configurado."
+                               FontSize="13"
+                               TextColor="{AppThemeBinding Light={StaticResource Gray400}, Dark={StaticResource Gray500}}"
+                               Margin="4,16,0,0" />
+                    </CollectionView.EmptyView>
+                    <CollectionView.ItemTemplate>
+                        <DataTemplate x:DataType="local:NotificationButtonRow">
+                            <Grid ColumnDefinitions="*,Auto" ColumnSpacing="12" Padding="0,8">
+                                <VerticalStackLayout Grid.Column="0" Spacing="2">
+                                    <Label Text="{Binding Label}"
+                                           FontSize="15"
+                                           FontAttributes="Bold" />
+                                    <Label Text="{Binding PersonNames}"
+                                           FontSize="12"
+                                           TextColor="{AppThemeBinding Light={StaticResource Gray600}, Dark={StaticResource Gray300}}" />
+                                    <Label Text="{Binding ActionDescription}"
+                                           FontSize="12"
+                                           TextColor="{AppThemeBinding Light={StaticResource Gray400}, Dark={StaticResource Gray500}}" />
+                                </VerticalStackLayout>
+                                <HorizontalStackLayout Grid.Column="1" Spacing="8" VerticalOptions="Center">
+                                    <Button Text="Editar"
+                                            Clicked="OnEditClicked"
+                                            CommandParameter="{Binding Id}"
+                                            FontSize="12"
+                                            Padding="10,4" />
+                                    <Button Text="Excluir"
+                                            Clicked="OnDeleteClicked"
+                                            CommandParameter="{Binding Id}"
+                                            FontSize="12"
+                                            Padding="10,4"
+                                            TextColor="Red" />
+                                </HorizontalStackLayout>
+                            </Grid>
+                        </DataTemplate>
+                    </CollectionView.ItemTemplate>
+                </CollectionView>
+
+            </VerticalStackLayout>
+        </ScrollView>
+    </RefreshView>
+</ContentPage>

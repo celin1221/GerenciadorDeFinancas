@@ -1,0 +1,60 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             x:Class="GerenciadorDeFinancas.CardFormPage"
+             Title="Novo cartão">
+    <ScrollView>
+        <VerticalStackLayout Padding="20" Spacing="8">
+
+            <Label Text="Nome"
+                   FontSize="13"
+                   TextColor="{AppThemeBinding Light={StaticResource Gray600}, Dark={StaticResource Gray300}}" />
+            <Entry x:Name="NameEntry"
+                   Placeholder="Ex.: Nubank do Marcelo" />
+
+            <Label Text="Banco"
+                   FontSize="13"
+                   TextColor="{AppThemeBinding Light={StaticResource Gray600}, Dark={StaticResource Gray300}}"
+                   Margin="0,12,0,0" />
+            <Picker x:Name="BankPicker"
+                    Title="Selecione o banco" />
+
+            <Label Text="Últimos 4 dígitos (opcional)"
+                   FontSize="13"
+                   TextColor="{AppThemeBinding Light={StaticResource Gray600}, Dark={StaticResource Gray300}}"
+                   Margin="0,12,0,0" />
+            <Entry x:Name="Last4Entry"
+                   Placeholder="1234"
+                   Keyboard="Numeric"
+                   MaxLength="4" />
+
+            <Label Text="Dono do cartão"
+                   FontSize="13"
+                   TextColor="{AppThemeBinding Light={StaticResource Gray600}, Dark={StaticResource Gray300}}"
+                   Margin="0,12,0,0" />
+            <Picker x:Name="OwnerPicker"
+                    Title="Selecione a pessoa" />
+
+            <Label Text="Dia de fechamento"
+                   FontSize="13"
+                   TextColor="{AppThemeBinding Light={StaticResource Gray600}, Dark={StaticResource Gray300}}"
+                   Margin="0,12,0,0" />
+            <Picker x:Name="ClosingDayPicker"
+                    Title="Dia" />
+
+            <Label Text="Dia de vencimento"
+                   FontSize="13"
+                   TextColor="{AppThemeBinding Light={StaticResource Gray600}, Dark={StaticResource Gray300}}"
+                   Margin="0,12,0,0" />
+            <Picker x:Name="DueDayPicker"
+                    Title="Dia" />
+
+            <Button Text="Salvar"
+                    Clicked="OnSaveClicked"
+                    Margin="0,24,0,0" />
+            <Button Text="Cancelar"
+                    Clicked="OnCancelClicked" />
+
+        </VerticalStackLayout>
+    </ScrollView>
+</ContentPage>

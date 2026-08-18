@@ -1,0 +1,31 @@
+## .NET build artifacts
+bin/
+obj/
+artifacts/
+
+## Local tools
+.tools/
+
+## Visual Studio
+.vs/
+*.user
+*.suo
+*.userprefs
+.vsconfig
+
+## Rider
+.idea/
+
+## macOS
+.DS_Store
+
+## Android
+*.keystore
+*.jks
+
+## Databases (local dev)
+*.db3
+*.sqlite
+
+## Logs
+*.log

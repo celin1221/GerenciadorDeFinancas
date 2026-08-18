@@ -1,0 +1,14 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/GerenciadorDeFinancas.Domain/GerenciadorDeFinancas.Domain.csproj" />
+    <Project Path="src/GerenciadorDeFinancas.Application/GerenciadorDeFinancas.Application.csproj" />
+    <Project Path="src/GerenciadorDeFinancas.Infrastructure/GerenciadorDeFinancas.Infrastructure.csproj" />
+    <Project Path="src/GerenciadorDeFinancas.Persistence/GerenciadorDeFinancas.Persistence.csproj" />
+  </Folder>
+  <Folder Name="/src/Mobile/">
+    <Project Path="src/GerenciadorDeFinancas.Mobile/GerenciadorDeFinancas.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/GerenciadorDeFinancas.UnitTests/GerenciadorDeFinancas.UnitTests.csproj" />
+  </Folder>
+</Solution>

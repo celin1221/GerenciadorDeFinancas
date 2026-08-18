@@ -1,0 +1,57 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:local="clr-namespace:GerenciadorDeFinancas"
+             x:Class="GerenciadorDeFinancas.CardsPage"
+             Title="Cartões">
+    <RefreshView x:Name="Refresh"
+                 Refreshing="OnRefreshing">
+        <ScrollView>
+            <VerticalStackLayout Padding="20" Spacing="12">
+
+                <Button Text="Adicionar cartão"
+                        Clicked="OnAddClicked"
+                        HorizontalOptions="Fill" />
+
+                <CollectionView x:Name="CardsView">
+                    <CollectionView.EmptyView>
+                        <Label Text="Nenhum cartão cadastrado ainda."
+                               FontSize="13"
+                               TextColor="{AppThemeBinding Light={StaticResource Gray400}, Dark={StaticResource Gray500}}"
+                               Margin="4,16,0,0" />
+                    </CollectionView.EmptyView>
+                    <CollectionView.ItemTemplate>
+                        <DataTemplate x:DataType="local:CardRow">
+                            <Grid ColumnDefinitions="*,Auto" ColumnSpacing="12" Padding="0,8">
+                                <VerticalStackLayout Grid.Column="0" Spacing="2">
+                                    <Label Text="{Binding Name}"
+                                           FontSize="15"
+                                           FontAttributes="Bold" />
+                                    <Label Text="{Binding BankText}"
+                                           FontSize="12"
+                                           TextColor="{AppThemeBinding Light={StaticResource Gray600}, Dark={StaticResource Gray300}}" />
+                                    <Label Text="{Binding OwnerText}"
+                                           FontSize="12"
+                                           TextColor="{AppThemeBinding Light={StaticResource Gray600}, Dark={StaticResource Gray300}}" />
+                                </VerticalStackLayout>
+                                <VerticalStackLayout Grid.Column="1" Spacing="4">
+                                    <Button Text="Editar"
+                                            Clicked="OnEditClicked"
+                                            CommandParameter="{Binding Id}"
+                                            FontSize="12"
+                                            Padding="10,4" />
+                                    <Button Text="{Binding StatusActionText}"
+                                            Clicked="OnToggleActiveClicked"
+                                            CommandParameter="{Binding Id}"
+                                            FontSize="12"
+                                            Padding="10,4" />
+                                </VerticalStackLayout>
+                            </Grid>
+                        </DataTemplate>
+                    </CollectionView.ItemTemplate>
+                </CollectionView>
+
+            </VerticalStackLayout>
+        </ScrollView>
+    </RefreshView>
+</ContentPage>

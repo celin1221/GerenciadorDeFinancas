@@ -1,0 +1,77 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:converters="clr-namespace:GerenciadorDeFinancas.Converters"
+             xmlns:local="clr-namespace:GerenciadorDeFinancas"
+             x:Class="GerenciadorDeFinancas.SplitPurchasePage"
+             Title="Dividir compra">
+    <ContentPage.Resources>
+        <converters:MoneyToTextConverter x:Key="MoneyToText" />
+        <converters:HexToBrushConverter x:Key="ColorToBrush" />
+    </ContentPage.Resources>
+
+    <ScrollView>
+        <VerticalStackLayout Padding="20" Spacing="8">
+
+            <Label x:Name="PurchaseTitleLabel"
+                   FontSize="18"
+                   FontAttributes="Bold" />
+            <Label x:Name="PurchaseCardLabel"
+                   FontSize="13"
+                   TextColor="{AppThemeBinding Light={StaticResource Gray600}, Dark={StaticResource Gray300}}" />
+            <Label x:Name="PurchaseAmountLabel"
+                   FontSize="26"
+                   FontAttributes="Bold" />
+
+            <Label Text="Quem participa? (o dono do cartão já vem marcado)"
+                   FontSize="13"
+                   TextColor="{AppThemeBinding Light={StaticResource Gray600}, Dark={StaticResource Gray300}}"
+                   Margin="0,16,0,0" />
+
+            <CollectionView x:Name="PeopleView">
+                <CollectionView.ItemTemplate>
+                    <DataTemplate x:DataType="local:SplitPersonRow">
+                        <Grid ColumnDefinitions="Auto,Auto,*,*" ColumnSpacing="8" Padding="0,6">
+                            <CheckBox Grid.Column="0"
+                                      IsChecked="{Binding IsChecked}"
+                                      VerticalOptions="Center" />
+                            <Ellipse Grid.Column="1"
+                                     WidthRequest="10"
+                                     HeightRequest="10"
+                                     VerticalOptions="Center"
+                                     StrokeThickness="0"
+                                     Fill="{Binding Color, Converter={StaticResource ColorToBrush}}" />
+                            <Label Grid.Column="2"
+                                   Text="{Binding Name}"
+                                   FontSize="15"
+                                   VerticalOptions="Center" />
+                            <Entry Grid.Column="3"
+                                   Text="{Binding AmountText}"
+                                   Placeholder="valor"
+                                   Keyboard="Numeric"
+                                   VerticalOptions="Center" />
+                        </Grid>
+                    </DataTemplate>
+                </CollectionView.ItemTemplate>
+            </CollectionView>
+
+            <Label Text="Valores: só números, vírgula para centavos (ex.: 35,50)."
+                   FontSize="11"
+                   TextColor="{AppThemeBinding Light={StaticResource Gray600}, Dark={StaticResource Gray300}}" />
+
+            <Button x:Name="EqualSplitButton"
+                    Text="Dividir igualmente"
+                    Clicked="OnEqualSplitClicked"
+                    Margin="0,16,0,0" />
+            <Button x:Name="AssignSingleButton"
+                    Text="Atribuir a essa pessoa"
+                    Clicked="OnAssignSingleClicked"
+                    IsEnabled="False" />
+            <Button Text="Salvar divisão personalizada"
+                    Clicked="OnCustomSaveClicked" />
+            <Button Text="Cancelar"
+                    Clicked="OnCancelClicked" />
+
+        </VerticalStackLayout>
+    </ScrollView>
+</ContentPage>

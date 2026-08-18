@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<Shell
+    x:Class="GerenciadorDeFinancas.AppShell"
+    xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+    xmlns:local="clr-namespace:GerenciadorDeFinancas"
+    Title="GerenciadorDeFinancas">
+
+    <TabBar>
+        <ShellContent
+            Title="Resumo"
+            ContentTemplate="{DataTemplate local:DashboardPage}"
+            Route="DashboardPage" />
+        <ShellContent
+            Title="Pendentes"
+            ContentTemplate="{DataTemplate local:PendingPurchasesPage}"
+            Route="PendingPurchasesPage" />
+        <ShellContent
+            Title="Pessoas"
+            ContentTemplate="{DataTemplate local:PeoplePage}"
+            Route="PeoplePage" />
+        <ShellContent
+            Title="Cartões"
+            ContentTemplate="{DataTemplate local:CardsPage}"
+            Route="CardsPage" />
+    </TabBar>
+
+</Shell>

@@ -1,0 +1,56 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:local="clr-namespace:GerenciadorDeFinancas"
+             x:Class="GerenciadorDeFinancas.NotificationButtonFormPage"
+             Title="Novo Botão">
+    <ScrollView>
+        <VerticalStackLayout Padding="20" Spacing="16">
+
+            <Label Text="Selecione as pessoas"
+                   FontSize="13"
+                   TextColor="{AppThemeBinding Light={StaticResource Gray600}, Dark={StaticResource Gray300}}"
+                   FontAttributes="Bold" />
+
+            <Label x:Name="HintLabel"
+                   FontSize="12"
+                   TextColor="{AppThemeBinding Light={StaticResource Gray400}, Dark={StaticResource Gray500}}" />
+
+            <CollectionView x:Name="PersonsView"
+                            SelectionMode="Multiple"
+                            SelectionChanged="OnSelectionChanged">
+                <CollectionView.ItemTemplate>
+                    <DataTemplate x:DataType="local:PersonCheckRow">
+                        <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="12" Padding="0,6">
+                            <CheckBox Grid.Column="0"
+                                      IsChecked="{Binding IsChecked}"
+                                      VerticalOptions="Center" />
+                            <Label Grid.Column="1"
+                                   Text="{Binding Name}"
+                                   FontSize="15"
+                                   VerticalOptions="Center" />
+                        </Grid>
+                    </DataTemplate>
+                </CollectionView.ItemTemplate>
+            </CollectionView>
+
+            <Label Text="Rótulo do botão"
+                   FontSize="13"
+                   TextColor="{AppThemeBinding Light={StaticResource Gray600}, Dark={StaticResource Gray300}}"
+                   FontAttributes="Bold" />
+
+            <Entry x:Name="LabelEntry"
+                   Placeholder="Gerado automaticamente"
+                   MaxLength="20" />
+
+            <Label x:Name="PreviewLabel"
+                   FontSize="12"
+                   TextColor="{AppThemeBinding Light={StaticResource Gray400}, Dark={StaticResource Gray500}}" />
+
+            <Button Text="Salvar"
+                    Clicked="OnSaveClicked"
+                    Margin="0,8,0,0" />
+
+        </VerticalStackLayout>
+    </ScrollView>
+</ContentPage>
