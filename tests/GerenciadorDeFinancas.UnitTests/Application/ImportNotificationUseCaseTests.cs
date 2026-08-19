@@ -83,7 +83,7 @@ public class ImportNotificationUseCaseTests
     }
 
     [Fact]
-    public async Task ExecuteAsync_CardNotMatchedWhenBankHasMultipleCards()
+    public async Task ExecuteAsync_AutoCreatesGenericCardWhenMultipleCardsExist()
     {
         var factory = TestDb.CreateUnitOfWorkFactory();
         var prompter = new RecordingPrompter();
@@ -93,7 +93,57 @@ public class ImportNotificationUseCaseTests
 
         var result = await useCase.ExecuteAsync(CreateRaw());
 
+        Assert.Equal(ImportOutcome.Created, result.Outcome);
+        Assert.NotNull(result.PurchaseId);
+        Assert.Single(prompter.Prompts);
+
+        using var unitOfWork = factory.Create();
+        var cards = await unitOfWork.Cards.ListByBankAsync("generic");
+        Assert.Equal(3, cards.Count);
+        var genericCard = cards.Single(c => c.Last4Digits is null && c.Name == "generic");
+        Assert.Equal(1, genericCard.ClosingDay);
+        Assert.Equal(10, genericCard.DueDay);
+    }
+
+    [Fact]
+    public async Task ExecuteAsync_AutoCreatesGenericCardWhenNoCardMatches()
+    {
+        var factory = TestDb.CreateUnitOfWorkFactory();
+        var prompter = new RecordingPrompter();
+        var personId = await CreatePersonAsync(factory);
+        var useCase = new ImportNotificationUseCase(factory, CreateRegistry(new GenericNotificationParser()), prompter);
+
+        var result = await useCase.ExecuteAsync(CreateRaw());
+
+        Assert.Equal(ImportOutcome.Created, result.Outcome);
+        Assert.NotNull(result.PurchaseId);
+        Assert.Single(prompter.Prompts);
+
+        using var unitOfWork = factory.Create();
+        var cards = await unitOfWork.Cards.ListByBankAsync("generic");
+        Assert.Single(cards);
+        var card = cards[0];
+        Assert.Equal("generic", card.Name);
+        Assert.Equal("generic", card.BankId);
+        Assert.Null(card.Last4Digits);
+        Assert.Equal(personId, card.OwnerPersonId);
+
+        var purchase = await unitOfWork.Purchases.GetByIdAsync(result.PurchaseId!.Value);
+        Assert.NotNull(purchase);
+        Assert.Equal(card.Id, purchase.CardId);
+    }
+
+    [Fact]
+    public async Task ExecuteAsync_CardNotMatchedWhenNoActivePersons()
+    {
+        var factory = TestDb.CreateUnitOfWorkFactory();
+        var prompter = new RecordingPrompter();
+        var useCase = new ImportNotificationUseCase(factory, CreateRegistry(new GenericNotificationParser()), prompter);
+
+        var result = await useCase.ExecuteAsync(CreateRaw());
+
         Assert.Equal(ImportOutcome.CardNotMatched, result.Outcome);
+        Assert.Empty(prompter.Prompts);
     }
 
     [Fact]
@@ -147,5 +197,14 @@ public class ImportNotificationUseCaseTests
         unitOfWork.Cards.Add(new Card("Cartão", bankId, last4, owner.Id, closingDay: 15, dueDay: 25));
         await unitOfWork.SaveChangesAsync();
         return owner.Id;
+    }
+
+    private static async Task<Guid> CreatePersonAsync(IUnitOfWorkFactory factory)
+    {
+        using var unitOfWork = factory.Create();
+        var person = new Person("Pessoa");
+        unitOfWork.Persons.Add(person);
+        await unitOfWork.SaveChangesAsync();
+        return person.Id;
     }
 }

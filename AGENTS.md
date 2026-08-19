@@ -7,18 +7,14 @@ Guia para agentes de IA trabalharem neste repositório.
 App .NET MAUI (Android) "GerenciadorDeFinancas": gerenciar despesas
 compartilhadas em cartões de crédito. Captura compras automaticamente a partir
 de notificações do Android (NotificationListenerService), classifica por
-notificação (ação rápida/divisão) e controla divisões entre pessoas. Tela
-inicial: `DashboardPage` (resumo com totais por pessoa/cartão e status das
-divisões), carregada pelo `AppShell` via DI (páginas resolvidas no container).
+notificação (ação rápida/divisão) e controla divisões entre pessoas.
 
-**Fase atual:** parsers dos 4 bancos (Nubank, Mercado Pago, Inter, BB)
-implementados sobre keywords + helpers compartilhados (`BrCurrencyParser`
-parcel-aware, `CardNumberParser`, `MerchantExtractor`), com corpus de teste de
-formatos típicos — **ainda não validado com capturas reais** (refinar keywords).
-`GenericNotificationParser` segue como último recurso para packages não
-reconhecidos. Captura/feedback só ocorre para os 4 bancos e quando a
-notificação tem forma de compra (`PurchaseNotificationGate`). A classificação é
-manual (ver abaixo).
+Captura/feedback só ocorre para os 4 bancos suportados e quando a notificação
+tem forma de compra (`PurchaseNotificationGate`). A classificação é manual via
+notificações Android com botões de ação rápida (`PurchaseActionReceiver`). Bancos
+v1: Nubank, Mercado Pago, Inter, Banco do Brasil (parsers em
+`Infrastructure/Notifications/Banks`). `GenericNotificationParser` é fallback
+para packages não reconhecidos.
 
 ## Stack e decisões importantes (ver `docs/adr/`)
 
@@ -33,9 +29,10 @@ manual (ver abaixo).
   (ADR-005). Bancos v1: Nubank, Mercado Pago, Inter, Banco do Brasil
   (implementados em `Infrastructure/Notifications/Banks`). Sem fallback para
   packages de banco: parser do banco retornando `null` = `ParseFailed`.
-- Classificação automática é stub: `IClassificationPrompter` é
-  `NoOpClassificationPrompter` no app; compras nascem `Pending` e só viram
-  `Classified` via `ClassifyPurchaseUseCase`/`SplitPurchaseUseCase` (ação na UI).
+- `IClassificationPrompter` é `NotificationClassificationPrompter` no app
+  (posta notificação Android com botões de ação rápida via
+  `PurchaseActionReceiver`). Compras nascem `Pending` e viram `Classified`
+  via `ClassifyPurchaseUseCase`/`SplitPurchaseUseCase` (ação na UI).
 - Casos de uso diretos, **sem MediatR** (ADR-006).
 - Arquitetura em camadas, direção de dependências apontando para dentro
   (ADR-007).
@@ -54,7 +51,8 @@ docs/adr/                              # Registro de decisões (ADRs)
 ```
 
 Regra de dependências: `Domain` não referencia nada; `Application`/`Persistence`
-→ `Domain`; `Infrastructure` → `Application`; `Mobile` → todos (compõe DI).
+→ `Domain`; `Infrastructure` → `Application` (+ `Domain` direto no csproj,
+redundante); `Mobile` → todos (compõe DI).
 
 ## Comandos
 
@@ -67,7 +65,8 @@ export DOTNET="/mnt/c/Program Files/dotnet/dotnet.exe"
 "$DOTNET" test tests/GerenciadorDeFinancas.UnitTests/GerenciadorDeFinancas.UnitTests.csproj
 ```
 
-- Build completo da solução (Android SDK local em `D:\AndroidSdk`):
+- Build completo da solução (`.slnx` formato XML; Android SDK local em
+  `D:\AndroidSdk`):
   ```bash
   "$DOTNET" build GerenciadorDeFinancas.slnx -p:AndroidSdkDirectory="D:\AndroidSdk"
   ```
@@ -85,7 +84,8 @@ export DOTNET="/mnt/c/Program Files/dotnet/dotnet.exe"
   ```
 - Testes: **sempre** rodar no projeto `...UnitTests.csproj`, nunca na solução
   inteira — o `.slnx` inclui o app MAUI/Android, que exige o workload Android e
-  falha no WSL. Suíte roda em SQLite em memória (**111 testes**). Para rodar só
+  falha no WSL. Suíte roda em SQLite em memória (**~126 testes**). Setup de teste
+  usa `TestDb.CreateUnitOfWorkFactory()` (helper estático em `tests/`). Para rodar só
   uma classe:
   ```bash
   "$DOTNET" test tests/GerenciadorDeFinancas.UnitTests/GerenciadorDeFinancas.UnitTests.csproj --filter "FullyQualifiedName~MoneyTests"
@@ -100,7 +100,6 @@ export DOTNET="/mnt/c/Program Files/dotnet/dotnet.exe"
 - Novos `PurchaseShare` devem ser adicionados via
   `IPurchaseRepository.AddShare` (EF marca como `Modified` se não), ou usar
   `Purchase.SetShares` antes do primeiro save.
-- Banco de dados local de desenvolvimento não é versionado.
 - `EnsureCreated` é usado **apenas** no `TestDb` (SQLite em memória); produção
   sempre via `MigrateAsync` (ADR-002).
 - Captura de notificações no aparelho exige o usuário conceder **"Acesso a
@@ -108,3 +107,11 @@ export DOTNET="/mnt/c/Program Files/dotnet/dotnet.exe"
   `BIND_NOTIFICATION_LISTENER_SERVICE` não tem prompt em runtime.
 - Idioma das mensagens de erro de domínio: português.
 - Não adicionar comentários em código salvo se necessário.
+- Não há pipeline de CI/CD configurado no repositório.
+- Cartão é opcional: quando o parser não encontra cartão registrado para o
+  banco, `ImportNotificationUseCase` auto-cria um cartão genérico
+  (`Last4Digits=null`) vinculado à primeira pessoa ativa. Se não houver
+  pessoa ativa, retorna `CardNotMatched`.
+- Tipos em `Platforms/Android/` só existem no TFM `net10.0-android`. Quando
+  referenciados em código compartilhado (`MauiProgram.cs`, `App.xaml.cs`),
+  usar `#if ANDROID` / `#else` com fallback (ex.: `NoOpClassificationPrompter`).

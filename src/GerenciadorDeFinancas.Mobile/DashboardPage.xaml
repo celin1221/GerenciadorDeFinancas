@@ -141,14 +141,14 @@
                         Clicked="OnEnableNotificationAccessClicked"
                         Margin="4,8,4,0"
                         HorizontalOptions="Fill" />
-
+                
                 <Button x:Name="TestNotificationButton"
                         Text="Simular notificação Nubank"
                         Clicked="OnTestNotificationClicked"
                         Margin="4,8,4,0"
                         HorizontalOptions="Fill"
                         BackgroundColor="{StaticResource Gray300}" />
-
+                
             </VerticalStackLayout>
         </ScrollView>
     </RefreshView>

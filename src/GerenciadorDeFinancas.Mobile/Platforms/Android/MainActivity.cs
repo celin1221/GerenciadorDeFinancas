@@ -14,7 +14,19 @@ namespace GerenciadorDeFinancas
         protected override void OnCreate(Bundle? savedInstanceState)
         {
             base.OnCreate(savedInstanceState);
+            _ = RequestNotificationPermissionAsync();
             HandleIntent(Intent);
+        }
+
+        private async Task RequestNotificationPermissionAsync()
+        {
+            if (!OperatingSystem.IsAndroidVersionAtLeast(33))
+            {
+                return;
+            }
+
+            var status = await Permissions.RequestAsync<Permissions.PostNotifications>();
+            System.Diagnostics.Debug.WriteLine($"GerenciadorDeFinancas: POST_NOTIFICATIONS permission = {status}");
         }
 
         protected override void OnNewIntent(Intent intent)

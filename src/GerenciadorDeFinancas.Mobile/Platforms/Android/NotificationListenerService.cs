@@ -19,6 +19,7 @@ namespace GerenciadorDeFinancas;
 [IntentFilter(new[] { "android.service.notification.NotificationListenerService" })]
 public sealed class PurchaseNotificationListener : NotificationListenerService
 {
+    private const string Tag = "GDF_Capture";
     private const string FeedbackChannelId = "capture_feedback";
     private const string FeedbackChannelName = "Resultado da captura";
     private const int FeedbackNotificationId = 1001;
@@ -30,6 +31,7 @@ public sealed class PurchaseNotificationListener : NotificationListenerService
     {
         base.OnCreate();
         CreateFeedbackChannel();
+        Android.Util.Log.Info(Tag, "PurchaseNotificationListener criado");
     }
 
     public override void OnNotificationPosted(StatusBarNotification? sbn)
@@ -58,6 +60,8 @@ public sealed class PurchaseNotificationListener : NotificationListenerService
             return;
         }
 
+        Android.Util.Log.Info(Tag, $"Notificação recebida: pkg={sbn.PackageName}, title={title}, text={text?.Substring(0, Math.Min(text.Length, 120))}");
+
         var raw = new NotificationRaw(
             PackageName: sbn.PackageName ?? string.Empty,
             Title: title ?? string.Empty,
@@ -68,15 +72,18 @@ public sealed class PurchaseNotificationListener : NotificationListenerService
         var services = MainApplication.Services;
         if (services is null)
         {
+            Android.Util.Log.Warn(Tag, "MainApplication.Services é null — serviço não inicializado");
             return;
         }
 
         var registry = services.GetRequiredService<INotificationParserRegistry>();
         if (!PurchaseNotificationGate.ShouldProcess(raw, registry))
         {
+            Android.Util.Log.Info(Tag, $"Gate rejeitou: pkg={raw.PackageName}");
             return;
         }
 
+        Android.Util.Log.Info(Tag, "Gate passou — processando notificação");
         _ = ProcessAsync(raw);
     }
 
@@ -85,6 +92,7 @@ public sealed class PurchaseNotificationListener : NotificationListenerService
         var services = MainApplication.Services;
         if (services is null)
         {
+            Android.Util.Log.Warn(Tag, "ProcessAsync: MainApplication.Services é null");
             return;
         }
 
@@ -94,6 +102,8 @@ public sealed class PurchaseNotificationListener : NotificationListenerService
 
             var useCase = services.GetRequiredService<ImportNotificationUseCase>();
             var result = await useCase.ExecuteAsync(raw);
+
+            Android.Util.Log.Info(Tag, $"Resultado do import: {result.Outcome} (purchaseId={result.PurchaseId})");
 
             if (result.Outcome == ImportOutcome.Created)
             {
@@ -112,7 +122,7 @@ public sealed class PurchaseNotificationListener : NotificationListenerService
         }
         catch (Exception ex)
         {
-            System.Diagnostics.Debug.WriteLine($"GerenciadorDeFinancas: erro ao processar notificação: {ex}");
+            Android.Util.Log.Error(Tag, $"Erro ao processar notificação: {ex}");
             PostFeedback("Erro ao processar a notificação.", isSuccess: false);
         }
     }
@@ -152,8 +162,10 @@ public sealed class PurchaseNotificationListener : NotificationListenerService
                 return;
             }
 
+            Android.Util.Log.Info(Tag, "Inicializando banco de dados...");
             await services.GetRequiredService<IDbInitializer>().InitializeAsync();
             _dbReady = true;
+            Android.Util.Log.Info(Tag, "Banco de dados inicializado");
         }
         finally
         {
@@ -184,8 +196,11 @@ public sealed class PurchaseNotificationListener : NotificationListenerService
         var manager = (NotificationManager?)GetSystemService(Context.NotificationService);
         if (manager is null)
         {
+            Android.Util.Log.Warn(Tag, "PostFeedback: NotificationManager é null");
             return;
         }
+
+        Android.Util.Log.Info(Tag, $"PostFeedback: '{message}' (success={isSuccess})");
 
         var builder = OperatingSystem.IsAndroidVersionAtLeast(26)
             ? new Notification.Builder(this, FeedbackChannelId)

@@ -10,10 +10,23 @@ public static class PurchaseNotificationGate
     {
         if (!KnownBanks.KnownBankPackages.Contains(notification.PackageName, StringComparer.OrdinalIgnoreCase))
         {
+            System.Diagnostics.Debug.WriteLine($"GDF_Gate: package '{notification.PackageName}' não é banco conhecido");
             return false;
         }
 
         var parser = registry.Find(notification);
-        return parser is not null && parser.IsPurchaseLike(notification);
+        if (parser is null)
+        {
+            System.Diagnostics.Debug.WriteLine($"GDF_Gate: nenhum parser encontrado para '{notification.PackageName}'");
+            return false;
+        }
+
+        if (!parser.IsPurchaseLike(notification))
+        {
+            System.Diagnostics.Debug.WriteLine($"GDF_Gate: parser '{parser.BankId}' rejeitou (IsPurchaseLike=false)");
+            return false;
+        }
+
+        return true;
     }
 }

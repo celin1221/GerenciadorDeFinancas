@@ -62,7 +62,6 @@ public partial class DashboardPage : ContentPage
         await Shell.Current.GoToAsync(nameof(NotificationButtonsPage));
     }
 
-#if DEBUG
     private async void OnTestNotificationClicked(object? sender, EventArgs e)
     {
         var raw = new NotificationRaw(
@@ -95,7 +94,6 @@ public partial class DashboardPage : ContentPage
             TestNotificationButton.IsEnabled = true;
         }
     }
-#endif
 
     private async Task LoadAsync()
     {

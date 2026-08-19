@@ -32,7 +32,9 @@ namespace GerenciadorDeFinancas
         protected override void OnStart()
         {
             base.OnStart();
+#if ANDROID
             MainActivity.FlushPendingNavigation();
+#endif
         }
     }
 }

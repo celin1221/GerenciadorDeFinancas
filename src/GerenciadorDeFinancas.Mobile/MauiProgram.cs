@@ -66,7 +66,11 @@ namespace GerenciadorDeFinancas
             services.AddTransient<DemoDataInitializer>();
 #endif
 
+#if ANDROID
             services.AddSingleton<IClassificationPrompter, NotificationClassificationPrompter>();
+#else
+            services.AddSingleton<IClassificationPrompter, NoOpClassificationPrompter>();
+#endif
 
             services.AddSingleton<INotificationParser, NubankNotificationParser>();
             services.AddSingleton<INotificationParser, MercadoPagoNotificationParser>();

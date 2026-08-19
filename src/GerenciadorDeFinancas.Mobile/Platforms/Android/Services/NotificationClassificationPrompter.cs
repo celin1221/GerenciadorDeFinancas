@@ -11,6 +11,7 @@ namespace GerenciadorDeFinancas.Services;
 
 public sealed class NotificationClassificationPrompter : IClassificationPrompter
 {
+    private const string Tag = "GDF_Classify";
     private const string ChannelId = "capture_feedback";
     private const int MaxCustomButtons = 3;
 
@@ -31,7 +32,7 @@ public sealed class NotificationClassificationPrompter : IClassificationPrompter
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"GerenciadorDeFinancas: erro ao postar notificação de classificação: {ex}");
+                Android.Util.Log.Error(Tag, $"Erro ao postar notificação de classificação: {ex}");
             }
         });
     }
@@ -41,6 +42,7 @@ public sealed class NotificationClassificationPrompter : IClassificationPrompter
         var context = _services.GetService<Context>();
         if (context is null)
         {
+            Android.Util.Log.Warn(Tag, "Context é null — não é possível postar notificação");
             return;
         }
 
@@ -52,6 +54,7 @@ public sealed class NotificationClassificationPrompter : IClassificationPrompter
         var manager = (NotificationManager?)context.GetSystemService(Context.NotificationService);
         if (manager is null)
         {
+            Android.Util.Log.Warn(Tag, "NotificationManager é null");
             return;
         }
 
@@ -83,7 +86,9 @@ public sealed class NotificationClassificationPrompter : IClassificationPrompter
         }
 
         var notificationId = prompt.PurchaseId.GetHashCode() & 0x7FFFFFFF;
+        Android.Util.Log.Info(Tag, $"Postando notificação: id={notificationId}, buttons={customButtons.Count}, text={contentText}");
         manager.Notify(notificationId, builder.Build());
+        Android.Util.Log.Info(Tag, "Notificação postada com sucesso");
     }
 
     private static string BuildContentText(ClassificationPrompt prompt)

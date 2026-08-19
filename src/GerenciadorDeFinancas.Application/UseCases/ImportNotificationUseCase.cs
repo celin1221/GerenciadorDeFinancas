@@ -30,28 +30,36 @@ public sealed class ImportNotificationUseCase
         var parser = _parserRegistry.Find(notification);
         if (parser is null)
         {
+            System.Diagnostics.Debug.WriteLine("GDF_Import: nenhum parser encontrado");
             return ImportNotificationResult.Unsupported();
         }
 
         var parsed = parser.TryParse(notification);
         if (parsed is null)
         {
+            System.Diagnostics.Debug.WriteLine($"GDF_Import: TryParse retornou null (parser={parser.BankId})");
             return ImportNotificationResult.ParseFailed();
         }
+
+        System.Diagnostics.Debug.WriteLine($"GDF_Import: parse ok — bank={parsed.BankId}, merchant={parsed.MerchantName}, amount={parsed.AmountCents}, card4={parsed.CardLast4}");
 
         using var unitOfWork = _unitOfWorkFactory.Create();
 
         var dedupHash = ComputeDedupHash(parsed);
         if (await unitOfWork.Purchases.GetByDedupHashAsync(dedupHash, cancellationToken) is not null)
         {
+            System.Diagnostics.Debug.WriteLine($"GDF_Import: duplicata detectada (hash={dedupHash[..12]}...)");
             return ImportNotificationResult.Duplicate();
         }
 
         var card = await ResolveCardAsync(unitOfWork, parsed, cancellationToken);
         if (card is null)
         {
+            System.Diagnostics.Debug.WriteLine("GDF_Import: CardNotMatched — nenhuma pessoa ativa ou cartão disponível");
             return ImportNotificationResult.CardNotMatched();
         }
+
+        System.Diagnostics.Debug.WriteLine($"GDF_Import: cartão resolvido — cardId={card.Id}, last4={card.Last4Digits}");
 
         var merchant = await ResolveMerchantAsync(unitOfWork, parsed, cancellationToken);
         var statement = await unitOfWork.Statements.GetOpenForCardAsync(card.Id, cancellationToken);
@@ -71,11 +79,15 @@ public sealed class ImportNotificationUseCase
         unitOfWork.Purchases.Add(purchase);
         await unitOfWork.SaveChangesAsync(cancellationToken);
 
+        System.Diagnostics.Debug.WriteLine($"GDF_Import: compra criada — purchaseId={purchase.Id}");
+
         _prompter.Prompt(new ClassificationPrompt(
             purchase.Id,
             purchase.AmountCents,
             merchant?.DisplayName ?? parsed.MerchantName,
             new[] { card.OwnerPersonId }));
+
+        System.Diagnostics.Debug.WriteLine("GDF_Import: prompter chamado");
 
         return ImportNotificationResult.Created(purchase.Id);
     }
@@ -87,11 +99,46 @@ public sealed class ImportNotificationUseCase
     {
         if (!string.IsNullOrWhiteSpace(parsed.CardLast4))
         {
-            return await unitOfWork.Cards.GetByBankAndLast4Async(parsed.BankId, parsed.CardLast4, cancellationToken);
+            var match = await unitOfWork.Cards.GetByBankAndLast4Async(parsed.BankId, parsed.CardLast4, cancellationToken);
+            if (match is not null)
+            {
+                return match;
+            }
+        }
+        else
+        {
+            var cards = await unitOfWork.Cards.ListByBankAsync(parsed.BankId, cancellationToken);
+            if (cards.Count == 1)
+            {
+                return cards[0];
+            }
         }
 
-        var cards = await unitOfWork.Cards.ListByBankAsync(parsed.BankId, cancellationToken);
-        return cards.Count == 1 ? cards[0] : null;
+        return await CreateGenericCardAsync(unitOfWork, parsed, cancellationToken);
+    }
+
+    private static async Task<Card?> CreateGenericCardAsync(
+        IUnitOfWork unitOfWork,
+        ParsedPurchase parsed,
+        CancellationToken cancellationToken)
+    {
+        var persons = await unitOfWork.Persons.ListActiveAsync(cancellationToken);
+        var owner = persons.FirstOrDefault();
+        if (owner is null)
+        {
+            return null;
+        }
+
+        var card = new Card(
+            name: parsed.BankId,
+            bankId: parsed.BankId,
+            last4Digits: null,
+            ownerPersonId: owner.Id,
+            closingDay: 1,
+            dueDay: 10);
+
+        unitOfWork.Cards.Add(card);
+        return card;
     }
 
     private static async Task<Merchant?> ResolveMerchantAsync(
