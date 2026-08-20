@@ -15,7 +15,8 @@ namespace GerenciadorDeFinancas;
 [Service(
     Exported = true,
     Permission = "android.permission.BIND_NOTIFICATION_LISTENER_SERVICE",
-    Label = "Captura de compras")]
+    Label = "Captura de compras",
+    ForegroundServiceType = Android.Content.PM.ForegroundService.TypeSpecialUse)]
 [IntentFilter(new[] { "android.service.notification.NotificationListenerService" })]
 public sealed class PurchaseNotificationListener : NotificationListenerService
 {
@@ -23,14 +24,20 @@ public sealed class PurchaseNotificationListener : NotificationListenerService
     private const string FeedbackChannelId = "capture_feedback";
     private const string FeedbackChannelName = "Resultado da captura";
     private const int FeedbackNotificationId = 1001;
+    private const string ForegroundChannelId = "capture_foreground";
+    private const string ForegroundChannelName = "Monitoramento de compras";
+    private const int ForegroundNotificationId = 1000;
 
     private static readonly SemaphoreSlim DbLock = new(1, 1);
     private static bool _dbReady;
+    private static IServiceProvider? _fallbackServices;
 
     public override void OnCreate()
     {
         base.OnCreate();
         CreateFeedbackChannel();
+        CreateForegroundChannel();
+        StartForegroundService();
         Android.Util.Log.Info(Tag, "PurchaseNotificationListener criado");
     }
 
@@ -69,10 +76,10 @@ public sealed class PurchaseNotificationListener : NotificationListenerService
             NotificationKey: sbn.Key,
             PostedAt: DateTimeOffset.FromUnixTimeMilliseconds(sbn.PostTime));
 
-        var services = MainApplication.Services;
+        var services = ResolveServices();
         if (services is null)
         {
-            Android.Util.Log.Warn(Tag, "MainApplication.Services é null — serviço não inicializado");
+            Android.Util.Log.Warn(Tag, "Não foi possível resolver serviços — notificação ignorada");
             return;
         }
 
@@ -84,18 +91,11 @@ public sealed class PurchaseNotificationListener : NotificationListenerService
         }
 
         Android.Util.Log.Info(Tag, "Gate passou — processando notificação");
-        _ = ProcessAsync(raw);
+        _ = ProcessAsync(raw, services);
     }
 
-    private async Task ProcessAsync(NotificationRaw raw)
+    private async Task ProcessAsync(NotificationRaw raw, IServiceProvider services)
     {
-        var services = MainApplication.Services;
-        if (services is null)
-        {
-            Android.Util.Log.Warn(Tag, "ProcessAsync: MainApplication.Services é null");
-            return;
-        }
-
         try
         {
             await EnsureDatabaseReadyAsync(services);
@@ -122,29 +122,35 @@ public sealed class PurchaseNotificationListener : NotificationListenerService
         }
         catch (Exception ex)
         {
-            Android.Util.Log.Error(Tag, $"Erro ao processar notificação: {ex}");
+            Android.Util.Log.Error(Tag, "Erro ao processar notificação", ex);
             PostFeedback("Erro ao processar a notificação.", isSuccess: false);
         }
     }
 
-    private static async Task<string> DescribeCreatedAsync(IServiceProvider services, Guid? purchaseId)
+    private static IServiceProvider? ResolveServices()
     {
-        if (purchaseId is null)
+        if (MainApplication.Services is { } services)
         {
-            return "Compra cadastrada.";
+            return services;
         }
 
-        using var unitOfWork = services.GetRequiredService<GerenciadorDeFinancas.Domain.Abstractions.IUnitOfWorkFactory>().Create();
-        var purchase = await unitOfWork.Purchases.GetByIdAsync(purchaseId.Value);
-        if (purchase is null)
+        if (_fallbackServices is { } cached)
         {
-            return "Compra cadastrada.";
+            return cached;
         }
 
-        var merchant = purchase.Merchant?.DisplayName;
-        return merchant is null
-            ? $"Compra de {Money.FromCents(purchase.AmountCents)} cadastrada."
-            : $"Compra de {Money.FromCents(purchase.AmountCents)} em {merchant} cadastrada.";
+        try
+        {
+            Android.Util.Log.Warn(Tag, "MainApplication.Services é null — inicializando container de fallback");
+            var app = MauiProgram.CreateMauiApp();
+            _fallbackServices = app.Services;
+            return _fallbackServices;
+        }
+        catch (Exception ex)
+        {
+            Android.Util.Log.Error(Tag, "Falha ao criar container de fallback", ex);
+            return null;
+        }
     }
 
     private static async Task EnsureDatabaseReadyAsync(IServiceProvider services)
@@ -171,6 +177,38 @@ public sealed class PurchaseNotificationListener : NotificationListenerService
         {
             DbLock.Release();
         }
+    }
+
+    private void StartForegroundService()
+    {
+        if (!OperatingSystem.IsAndroidVersionAtLeast(26))
+        {
+            return;
+        }
+
+        var builder = new Notification.Builder(this, ForegroundChannelId)
+            .SetSmallIcon(Android.Resource.Drawable.SymDefAppIcon)
+            .SetContentTitle("Gerenciador de Finanças")
+            .SetContentText("Monitorando compras...")
+            .SetOngoing(true);
+
+        StartForeground(ForegroundNotificationId, builder.Build());
+        Android.Util.Log.Info(Tag, "Foreground service iniciado");
+    }
+
+    private void CreateForegroundChannel()
+    {
+        if (!OperatingSystem.IsAndroidVersionAtLeast(26))
+        {
+            return;
+        }
+
+        var channel = new NotificationChannel(ForegroundChannelId, ForegroundChannelName, NotificationImportance.Low)
+        {
+            Description = "Notificação persistente de monitoramento de compras.",
+        };
+        var manager = (NotificationManager?)GetSystemService(Context.NotificationService);
+        manager?.CreateNotificationChannel(channel);
     }
 
     private static string? GetExtra(Notification notification, string key) =>

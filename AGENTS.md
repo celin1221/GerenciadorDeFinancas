@@ -1,6 +1,7 @@
 # AGENTS.md
 
-Guia para agentes de IA trabalharem neste repositório.
+Guia para agentes de IA trabalharem neste repositório. Não existe README;
+este arquivo é a principal fonte de orientação para novos colaboradores.
 
 ## Visão geral
 
@@ -90,6 +91,19 @@ export DOTNET="/mnt/c/Program Files/dotnet/dotnet.exe"
   ```bash
   "$DOTNET" test tests/GerenciadorDeFinancas.UnitTests/GerenciadorDeFinancas.UnitTests.csproj --filter "FullyQualifiedName~MoneyTests"
   ```
+- Testes de notificação via ADB (build DEBUG, app aberto no emulador/dispositivo):
+  O Java class name do receiver é CRC64-hashed — use `-n` com o nome completo.
+  Descubra com:
+  ```cmd
+  adb shell dumpsys package com.companyname.gerenciadordefinancas | findstr TestNotif
+  ```
+  ```cmd
+  adb logcat -c
+  adb shell am broadcast -n com.companyname.gerenciadordefinancas/crc64018e82f8dd9c928e.TestNotificationReceiver --es package com.nubank.nubank --es title 'Compra aprovada' --es text 'Compra de R$ 50,00 em Padaria'
+  adb logcat -s GDF_Test
+  ```
+  No Windows CMD, usar aspas simples (`'`) para extras com espaços — aspas duplas
+  são engolidas pelo CMD.
 
 ## Convenções
 
@@ -105,6 +119,10 @@ export DOTNET="/mnt/c/Program Files/dotnet/dotnet.exe"
 - Captura de notificações no aparelho exige o usuário conceder **"Acesso a
   notificações"** manualmente no sistema Android — a permissão
   `BIND_NOTIFICATION_LISTENER_SERVICE` não tem prompt em runtime.
+- **Xiaomi/MIUI**: o MIUI mata serviços em background agressivamente. O
+  `PurchaseNotificationListener` usa foreground service para sobreviver, mas
+  o usuário também precisa habilitar: (1) Inicialização automática do app,
+  (2) Bateria > Sem restrições, (3) Trancar o app no recent apps.
 - Idioma das mensagens de erro de domínio: português.
 - Não adicionar comentários em código salvo se necessário.
 - Não há pipeline de CI/CD configurado no repositório.
