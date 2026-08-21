@@ -39,12 +39,7 @@ public sealed class NotificationClassificationPrompter : IClassificationPrompter
 
     private async Task PostNotificationAsync(ClassificationPrompt prompt)
     {
-        var context = _services.GetService<Context>();
-        if (context is null)
-        {
-            Android.Util.Log.Warn(Tag, "Context é null — não é possível postar notificação");
-            return;
-        }
+        var context = _services.GetService<Context>() ?? global::Android.App.Application.Context;
 
         var factory = _services.GetRequiredService<IUnitOfWorkFactory>();
         using var unitOfWork = factory.Create();
@@ -60,20 +55,37 @@ public sealed class NotificationClassificationPrompter : IClassificationPrompter
 
         EnsureChannelExists(manager);
 
-        var contentText = BuildContentText(prompt);
-        var contentIntent = CreateContentIntent(context, prompt.PurchaseId);
-
         var builder = OperatingSystem.IsAndroidVersionAtLeast(26)
             ? new Notification.Builder(context, ChannelId)
             : new Notification.Builder(context);
 
         builder
             .SetSmallIcon(Android.Resource.Drawable.SymDefAppIcon)
+            .SetAutoCancel(true);
+
+        if (buttons.Count == 0)
+        {
+            var amount = Money.FromCents(prompt.AmountCents);
+            builder
+                .SetContentTitle("Nenhum botão de classificação")
+                .SetContentText($"Compra de {amount} capturada. Cadastre botões para classificar compras com um toque.")
+                .SetStyle(new Notification.BigTextStyle().BigText(
+                    $"Compra de {amount} capturada.\n\nCadastre botões de classificação para dividir compras com um toque na notificação."))
+                .SetContentIntent(CreateContentIntent(context, prompt.PurchaseId, openButtonsPage: true));
+
+            var notificationId = prompt.PurchaseId.GetHashCode() & 0x7FFFFFFF;
+            Android.Util.Log.Info(Tag, $"Postando notificação sem botões cadastrados: id={notificationId}");
+            manager.Notify(notificationId, builder.Build());
+            Android.Util.Log.Info(Tag, "Notificação 'cadastre botões' postada com sucesso");
+            return;
+        }
+
+        var contentText = BuildContentText(prompt);
+        builder
             .SetContentTitle("Compra capturada")
             .SetContentText(contentText)
             .SetStyle(new Notification.BigTextStyle().BigText(contentText))
-            .SetContentIntent(contentIntent)
-            .SetAutoCancel(true);
+            .SetContentIntent(CreateContentIntent(context, prompt.PurchaseId, openButtonsPage: false));
 
         var customButtons = buttons.Take(MaxCustomButtons).ToList();
         foreach (var button in customButtons)
@@ -85,9 +97,9 @@ public sealed class NotificationClassificationPrompter : IClassificationPrompter
             builder.AddAction(action);
         }
 
-        var notificationId = prompt.PurchaseId.GetHashCode() & 0x7FFFFFFF;
-        Android.Util.Log.Info(Tag, $"Postando notificação: id={notificationId}, buttons={customButtons.Count}, text={contentText}");
-        manager.Notify(notificationId, builder.Build());
+        var id = prompt.PurchaseId.GetHashCode() & 0x7FFFFFFF;
+        Android.Util.Log.Info(Tag, $"Postando notificação: id={id}, buttons={customButtons.Count}, text={contentText}");
+        manager.Notify(id, builder.Build());
         Android.Util.Log.Info(Tag, "Notificação postada com sucesso");
     }
 
@@ -99,13 +111,13 @@ public sealed class NotificationClassificationPrompter : IClassificationPrompter
             : $"Compra de {amount} em {prompt.MerchantName} cadastrada.";
     }
 
-    private static PendingIntent CreateContentIntent(Context context, Guid purchaseId)
+    private static PendingIntent CreateContentIntent(Context context, Guid purchaseId, bool openButtonsPage)
     {
         var packageName = context.PackageName ?? string.Empty;
         var intent = context.PackageManager?.GetLaunchIntentForPackage(packageName)
             ?? new Intent(Intent.ActionMain);
 
-        intent.PutExtra("action", "OPEN_PENDING");
+        intent.PutExtra("action", openButtonsPage ? "OPEN_BUTTONS" : "OPEN_PENDING");
         intent.PutExtra("purchase_id", purchaseId.ToString());
         intent.AddCategory(Intent.CategoryLauncher);
         intent.SetFlags(ActivityFlags.NewTask | ActivityFlags.ClearTop | ActivityFlags.SingleTop);

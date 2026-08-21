@@ -113,6 +113,9 @@ namespace GerenciadorDeFinancas
                     case "OPEN_PENDING":
                         await Shell.Current.GoToAsync("//Pendentes");
                         break;
+                    case "OPEN_BUTTONS":
+                        await Shell.Current.GoToAsync(nameof(NotificationButtonsPage));
+                        break;
                     case "OPEN_PURCHASE":
                         if (!string.IsNullOrEmpty(purchaseId) && Guid.TryParse(purchaseId, out var id))
                         {

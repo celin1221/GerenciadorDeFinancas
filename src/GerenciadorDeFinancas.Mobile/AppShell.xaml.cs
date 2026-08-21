@@ -6,6 +6,7 @@
         {
             InitializeComponent();
             Routing.RegisterRoute(nameof(PersonFormPage), typeof(PersonFormPage));
+            Routing.RegisterRoute(nameof(PersonDetailPage), typeof(PersonDetailPage));
             Routing.RegisterRoute(nameof(CardFormPage), typeof(CardFormPage));
             Routing.RegisterRoute(nameof(SplitPurchasePage), typeof(SplitPurchasePage));
             Routing.RegisterRoute(nameof(NotificationButtonsPage), typeof(NotificationButtonsPage));

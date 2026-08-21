@@ -13,7 +13,7 @@ namespace GerenciadorDeFinancas.UnitTests.Application;
 public class ImportNotificationUseCaseTests
 {
     [Fact]
-    public async Task ExecuteAsync_CreatesPendingPurchaseAndPrompts()
+    public async Task ExecuteAsync_CreatesPendingPurchaseAndReturnsPromptData()
     {
         var factory = TestDb.CreateUnitOfWorkFactory();
         var prompter = new RecordingPrompter();
@@ -25,9 +25,13 @@ public class ImportNotificationUseCaseTests
 
         Assert.Equal(ImportOutcome.Created, result.Outcome);
         Assert.NotNull(result.PurchaseId);
-        Assert.Single(prompter.Prompts);
-        Assert.Equal(result.PurchaseId, prompter.Prompts[0].PurchaseId);
-        Assert.Contains(ownerId, prompter.Prompts[0].SuggestedPersonIds);
+        Assert.Equal(18000, result.AmountCents);
+        Assert.Equal(ownerId, result.OwnerPersonId);
+
+        var prompt = Assert.Single(prompter.Prompts);
+        Assert.Equal(result.PurchaseId!.Value, prompt.PurchaseId);
+        Assert.Equal(18000, prompt.AmountCents);
+        Assert.Equal(ownerId, prompt.SuggestedPersonIds.Single());
 
         using var unitOfWork = factory.Create();
         var purchase = await unitOfWork.Purchases.GetByIdAsync(result.PurchaseId!.Value);
@@ -55,6 +59,26 @@ public class ImportNotificationUseCaseTests
         using var unitOfWork = factory.Create();
         var pending = await unitOfWork.Purchases.ListPendingAsync();
         Assert.Single(pending);
+    }
+
+    [Fact]
+    public async Task ExecuteAsync_DifferentNotificationKeysAreNotDuplicate()
+    {
+        var factory = TestDb.CreateUnitOfWorkFactory();
+        var prompter = new RecordingPrompter();
+        await CreateCardAsync(factory, "generic", last4: null);
+        var useCase = new ImportNotificationUseCase(factory, CreateRegistry(new GenericNotificationParser()), prompter);
+
+        var first = await useCase.ExecuteAsync(CreateRaw(key: "key-1"));
+        var second = await useCase.ExecuteAsync(CreateRaw(key: "key-2"));
+
+        Assert.Equal(ImportOutcome.Created, first.Outcome);
+        Assert.Equal(ImportOutcome.Created, second.Outcome);
+        Assert.Equal(2, prompter.Prompts.Count);
+
+        using var unitOfWork = factory.Create();
+        var pending = await unitOfWork.Purchases.ListPendingAsync();
+        Assert.Equal(2, pending.Count);
     }
 
     [Fact]
@@ -95,6 +119,7 @@ public class ImportNotificationUseCaseTests
 
         Assert.Equal(ImportOutcome.Created, result.Outcome);
         Assert.NotNull(result.PurchaseId);
+        Assert.NotNull(result.OwnerPersonId);
         Assert.Single(prompter.Prompts);
 
         using var unitOfWork = factory.Create();
@@ -117,6 +142,7 @@ public class ImportNotificationUseCaseTests
 
         Assert.Equal(ImportOutcome.Created, result.Outcome);
         Assert.NotNull(result.PurchaseId);
+        Assert.Equal(personId, result.OwnerPersonId);
         Assert.Single(prompter.Prompts);
 
         using var unitOfWork = factory.Create();
@@ -158,9 +184,12 @@ public class ImportNotificationUseCaseTests
 
         Assert.Equal(ImportOutcome.Created, result.Outcome);
         Assert.NotNull(result.PurchaseId);
-        Assert.Single(prompter.Prompts);
-        Assert.Equal(result.PurchaseId, prompter.Prompts[0].PurchaseId);
-        Assert.Contains(ownerId, prompter.Prompts[0].SuggestedPersonIds);
+        Assert.Equal(10000, result.AmountCents);
+        Assert.Equal(ownerId, result.OwnerPersonId);
+
+        var prompt = Assert.Single(prompter.Prompts);
+        Assert.Equal(result.PurchaseId!.Value, prompt.PurchaseId);
+        Assert.Equal("Mercado Livre", prompt.MerchantName);
 
         using var unitOfWork = factory.Create();
         var purchase = await unitOfWork.Purchases.GetByIdAsync(result.PurchaseId!.Value);
@@ -170,12 +199,12 @@ public class ImportNotificationUseCaseTests
         Assert.Equal("Mercado Livre", purchase.Merchant?.DisplayName);
     }
 
-    private static NotificationRaw CreateRaw() =>
+    private static NotificationRaw CreateRaw(string key = "key-1") =>
         new(
             PackageName: "com.banco.desconhecido",
             Title: "Compra aprovada",
             Text: "Compra de R$ 180,00 no Supermercado X",
-            NotificationKey: "key-1",
+            NotificationKey: key,
             PostedAt: DateTimeOffset.UtcNow);
 
     private static NotificationRaw CreateNubankRaw() =>

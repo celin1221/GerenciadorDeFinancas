@@ -13,6 +13,7 @@ public class NubankNotificationParserTests
         { Raw("Compra no crédito aprovada", "Compra de R$ 35,90 APROVADA em iFood para o cartão com final 1234."), 3590, "iFood", "1234" },
         { Raw("Compra no crédito aprovada", "Compra de R$ 300,00 APROVADA em Mercado Livre em 3x de R$ 100,00 para o cartão com final 5678."), 10000, "Mercado Livre", "5678" },
         { Raw("Compra no crédito aprovada", "Compra de R$ 89,00 APROVADA em Uber para o cartão com final 9012."), 8900, "Uber", "9012" },
+        { Raw("Transferência recebida", "Você recebeu uma transferência de R$ 0,01 de Marcelo Vieira Gomes."), 1, "Marcelo Vieira Gomes", null },
     };
 
     [Theory]
@@ -31,7 +32,6 @@ public class NubankNotificationParserTests
     [Theory]
     [InlineData("Seu limite foi alterado", "Solicite pelo app.")]
     [InlineData("teste", "teste")]
-    [InlineData("Você recebeu um Pix de R$ 50,00", "Transfira pelo app.")]
     public void TryParse_NonPurchase_ReturnsNull(string title, string text)
     {
         Assert.Null(_parser.TryParse(Raw(title, text)));

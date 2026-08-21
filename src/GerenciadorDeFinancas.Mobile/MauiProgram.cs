@@ -37,6 +37,7 @@ namespace GerenciadorDeFinancas
             services.AddSingleton<IUnitOfWorkFactory, UnitOfWorkFactory>();
 
             services.AddTransient<GetDashboardSummaryUseCase>();
+            services.AddTransient<GetPersonDetailUseCase>();
             services.AddTransient<ImportNotificationUseCase>();
             services.AddTransient<ClassifyPurchaseUseCase>();
             services.AddTransient<SplitPurchaseUseCase>();

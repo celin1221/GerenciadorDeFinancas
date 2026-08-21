@@ -11,6 +11,7 @@ public static class KnownBanks
     public const string Generic = "generic";
 
     public const string NubankPackage = "com.nubank.nubank";
+    public const string NubankPackageProduction = "com.nu.production";
     public const string MercadoPagoPackage = "com.mercadopago.wallet";
     public const string InterPackage = "br.com.inter";
     public const string BancoDoBrasilPackage = "br.com.bb.android";
@@ -18,6 +19,7 @@ public static class KnownBanks
     public static IReadOnlyList<string> KnownBankPackages { get; } = new[]
     {
         NubankPackage,
+        NubankPackageProduction,
         MercadoPagoPackage,
         InterPackage,
         BancoDoBrasilPackage,

@@ -1,7 +1,8 @@
 # AGENTS.md
 
-Guia para agentes de IA trabalharem neste repositório. Não existe README;
-este arquivo é a principal fonte de orientação para novos colaboradores.
+Guia para agentes de IA trabalharem neste repositório. O `README.md` cobre o
+básico para humanos; aqui está o contexto que um agente provavelmente erraria
+sem ajuda.
 
 ## Visão geral
 
@@ -10,12 +11,17 @@ compartilhadas em cartões de crédito. Captura compras automaticamente a partir
 de notificações do Android (NotificationListenerService), classifica por
 notificação (ação rápida/divisão) e controla divisões entre pessoas.
 
-Captura/feedback só ocorre para os 4 bancos suportados e quando a notificação
-tem forma de compra (`PurchaseNotificationGate`). A classificação é manual via
-notificações Android com botões de ação rápida (`PurchaseActionReceiver`). Bancos
-v1: Nubank, Mercado Pago, Inter, Banco do Brasil (parsers em
-`Infrastructure/Notifications/Banks`). `GenericNotificationParser` é fallback
-para packages não reconhecidos.
+Captura só ocorre para packages em `KnownBanks.KnownBankPackages`
+(`Application/Banks/KnownBanks.cs`: Nubank — 2 packages incluindo
+`com.nu.production`, Mercado Pago, Inter, BB) **e** quando o parser aceita a
+notificação como compra (`PurchaseNotificationGate`). Package desconhecido é
+ignorado antes de parsear. Classificação é manual: `ImportNotificationUseCase`
+cria a compra `Pending` e chama `IClassificationPrompter`, que posta notificação
+com botões rápidos (`PurchaseActionReceiver`); sem botões cadastrados, posta
+aviso para cadastrar (action `OPEN_BUTTONS` no `MainActivity`).
+`GenericNotificationParser` (`CanHandle=true`, prioridade 0) é fallback interno
+do registry — não captura packages desconhecidos; bankId `generic` também é
+opção de cartão ("Genérico / Outro banco").
 
 ## Stack e decisões importantes (ver `docs/adr/`)
 
@@ -26,17 +32,11 @@ para packages não reconhecidos.
   NU1603 por dependência inexistente). ADR-002.
 - Dinheiro = `long` em centavos, value object `Money` (ADR-003).
 - Dedup de compras por SHA-256 (ADR-004).
-- Parsers de notificação: registry por prioridade + fallback genérico
-  (ADR-005). Bancos v1: Nubank, Mercado Pago, Inter, Banco do Brasil
-  (implementados em `Infrastructure/Notifications/Banks`). Sem fallback para
-  packages de banco: parser do banco retornando `null` = `ParseFailed`.
-- `IClassificationPrompter` é `NotificationClassificationPrompter` no app
-  (posta notificação Android com botões de ação rápida via
-  `PurchaseActionReceiver`). Compras nascem `Pending` e viram `Classified`
-  via `ClassifyPurchaseUseCase`/`SplitPurchaseUseCase` (ação na UI).
+- Parsers de notificação: registry por prioridade (ADR-005). Parser do banco
+  retornando `null` = `ParseFailed`. Adicionar banco = novo parser + registro
+  no DI + package em `KnownBanks`.
 - Casos de uso diretos, **sem MediatR** (ADR-006).
-- Arquitetura em camadas, direção de dependências apontando para dentro
-  (ADR-007).
+- Arquitetura em camadas, dependências apontando para dentro (ADR-007).
 
 ## Estrutura
 
@@ -57,7 +57,7 @@ redundante); `Mobile` → todos (compõe DI).
 
 ## Comandos
 
-O ambiente de build é **Windows** (projeto vive em `D:\ProjetosVisualStudio\...`,
+O ambiente de build é **Windows** (projeto vive em `D:\Git\GerenciadorDeFinancas`,
 montado no WSL como `/mnt/d/...`). No WSL o `dotnet` **não está no PATH**;
 sempre use:
 
@@ -85,22 +85,24 @@ export DOTNET="/mnt/c/Program Files/dotnet/dotnet.exe"
   ```
 - Testes: **sempre** rodar no projeto `...UnitTests.csproj`, nunca na solução
   inteira — o `.slnx` inclui o app MAUI/Android, que exige o workload Android e
-  falha no WSL. Suíte roda em SQLite em memória (**~126 testes**). Setup de teste
-  usa `TestDb.CreateUnitOfWorkFactory()` (helper estático em `tests/`). Para rodar só
-  uma classe:
+  falha no WSL. Suíte roda em SQLite em memória (**~146 testes**). Setup de teste
+  usa `TestDb.CreateUnitOfWorkFactory()` (helper estático em `tests/`). Para rodar
+  só uma classe:
   ```bash
   "$DOTNET" test tests/GerenciadorDeFinancas.UnitTests/GerenciadorDeFinancas.UnitTests.csproj --filter "FullyQualifiedName~MoneyTests"
   ```
-- Testes de notificação via ADB (build DEBUG, app aberto no emulador/dispositivo):
-  O Java class name do receiver é CRC64-hashed — use `-n` com o nome completo.
-  Descubra com:
-  ```cmd
-  adb shell dumpsys package com.companyname.gerenciadordefinancas | findstr TestNotif
-  ```
+- Testes de notificação via ADB (build DEBUG, app aberto no emulador/dispositivo
+  ao menos uma vez — `MainApplication.Services` precisa existir):
+  `TestNotificationReceiver` só existe em DEBUG e tem intent filter com action
+  própria, então broadcast implícito dispensa o nome Java CRC64-hashed:
   ```cmd
   adb logcat -c
-  adb shell am broadcast -n com.companyname.gerenciadordefinancas/crc64018e82f8dd9c928e.TestNotificationReceiver --es package com.nubank.nubank --es title 'Compra aprovada' --es text 'Compra de R$ 50,00 em Padaria'
-  adb logcat -s GDF_Test
+  adb shell am broadcast -a com.gerenciadordefinancas.TEST_NOTIFICATION --es package com.nubank.nubank --es title 'Compra aprovada' --es text 'Compra de R$ 50,00 em Padaria'
+  adb logcat -s GDF_Test GDF_Capture GDF_Import GDF_Classify
+  ```
+  Se precisar do `-n`, descubra o nome hashado com:
+  ```cmd
+  adb shell dumpsys package com.companyname.gerenciadordefinancas | findstr TestNotif
   ```
   No Windows CMD, usar aspas simples (`'`) para extras com espaços — aspas duplas
   são engolidas pelo CMD.
@@ -116,6 +118,18 @@ export DOTNET="/mnt/c/Program Files/dotnet/dotnet.exe"
   `Purchase.SetShares` antes do primeiro save.
 - `EnsureCreated` é usado **apenas** no `TestDb` (SQLite em memória); produção
   sempre via `MigrateAsync` (ADR-002).
+- **Context do Android não está registrado no DI do MAUI**:
+  `_services.GetService<Context>()` retorna null. Use
+  `global::Android.App.Application.Context` como fallback. Em arquivos com
+  `using GerenciadorDeFinancas.Application;`, `Application.Context` resolve para
+  o namespace — qualifique com `global::`.
+- Fluxo de pós-captura é centralizado: `ImportNotificationUseCase` →
+  `IClassificationPrompter` → `NotificationClassificationPrompter` (posta
+  notificação com até 3 botões de `NotificationButtons`, ou aviso "cadastre
+  botões"). Não duplicar esse chamado nos callers.
+- `POST_NOTIFICATIONS` (Android 13+) é solicitada uma vez no start do app;
+  negada = `Notify()` descarta silenciosamente. Depurar notificações com
+  `adb logcat -s GDF_Capture GDF_Classify`.
 - Captura de notificações no aparelho exige o usuário conceder **"Acesso a
   notificações"** manualmente no sistema Android — a permissão
   `BIND_NOTIFICATION_LISTENER_SERVICE` não tem prompt em runtime.
@@ -133,3 +147,5 @@ export DOTNET="/mnt/c/Program Files/dotnet/dotnet.exe"
 - Tipos em `Platforms/Android/` só existem no TFM `net10.0-android`. Quando
   referenciados em código compartilhado (`MauiProgram.cs`, `App.xaml.cs`),
   usar `#if ANDROID` / `#else` com fallback (ex.: `NoOpClassificationPrompter`).
+- Cores de pessoa são sempre salvas normalizadas `#RRGGBB` ou null (seletor
+  visual no `PersonFormPage`); hex inválido quebra `HexToBrushConverter`.

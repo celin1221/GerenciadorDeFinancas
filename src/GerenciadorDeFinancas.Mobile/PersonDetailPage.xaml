@@ -1,0 +1,106 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:local="clr-namespace:GerenciadorDeFinancas"
+             x:Class="GerenciadorDeFinancas.PersonDetailPage"
+             Title="Detalhe da pessoa">
+    <RefreshView x:Name="Refresh"
+                 Refreshing="OnRefreshing">
+        <ScrollView>
+            <VerticalStackLayout Padding="20" Spacing="16">
+
+                <Border BackgroundColor="{AppThemeBinding Light={StaticResource Secondary}, Dark={StaticResource Gray900}}"
+                        StrokeShape="RoundRectangle 12"
+                        StrokeThickness="0"
+                        Padding="16">
+                    <Grid ColumnDefinitions="Auto,*" ColumnSpacing="14">
+                        <Ellipse x:Name="HeaderDot"
+                                 Grid.Column="0"
+                                 WidthRequest="44"
+                                 HeightRequest="44"
+                                 VerticalOptions="Center"
+                                 StrokeThickness="0" />
+                        <VerticalStackLayout Grid.Column="1" Spacing="2">
+                            <Label x:Name="PersonNameLabel"
+                                   FontSize="20"
+                                   FontAttributes="Bold" />
+                            <Label Text="TOTAL A PAGAR"
+                                   FontSize="12"
+                                   TextColor="{AppThemeBinding Light={StaticResource Gray600}, Dark={StaticResource Gray300}}" />
+                            <Label x:Name="TotalLabel"
+                                   FontSize="28"
+                                   FontAttributes="Bold" />
+                        </VerticalStackLayout>
+                    </Grid>
+                </Border>
+
+                <Label Text="POR CARTÃO"
+                       FontSize="13"
+                       TextColor="{AppThemeBinding Light={StaticResource Gray600}, Dark={StaticResource Gray300}}"
+                       FontAttributes="Bold"
+                       Margin="4,8,0,0" />
+
+                <CollectionView x:Name="CardsView">
+                    <CollectionView.EmptyView>
+                        <Label Text="Nenhuma compra classificada ainda."
+                               FontSize="13"
+                               TextColor="{AppThemeBinding Light={StaticResource Gray400}, Dark={StaticResource Gray500}}" />
+                    </CollectionView.EmptyView>
+                    <CollectionView.ItemTemplate>
+                        <DataTemplate x:DataType="local:PersonCardRow">
+                            <Grid ColumnDefinitions="*,Auto" ColumnSpacing="12" Padding="4,8">
+                                <Label Grid.Column="0"
+                                       Text="{Binding CardName}"
+                                       FontSize="15"
+                                       VerticalOptions="Center" />
+                                <Label Grid.Column="1"
+                                       Text="{Binding AmountText}"
+                                       FontSize="15"
+                                       FontAttributes="Bold"
+                                       VerticalOptions="Center" />
+                            </Grid>
+                        </DataTemplate>
+                    </CollectionView.ItemTemplate>
+                </CollectionView>
+
+                <Label Text="COMPRAS"
+                       FontSize="13"
+                       TextColor="{AppThemeBinding Light={StaticResource Gray600}, Dark={StaticResource Gray300}}"
+                       FontAttributes="Bold"
+                       Margin="4,8,0,0" />
+
+                <CollectionView x:Name="PurchasesView">
+                    <CollectionView.EmptyView>
+                        <Label Text="Nenhuma compra classificada para esta pessoa."
+                               FontSize="13"
+                               TextColor="{AppThemeBinding Light={StaticResource Gray400}, Dark={StaticResource Gray500}}" />
+                    </CollectionView.EmptyView>
+                    <CollectionView.ItemTemplate>
+                        <DataTemplate x:DataType="local:PersonPurchaseRow">
+                            <Grid ColumnDefinitions="*,Auto" ColumnSpacing="12" Padding="4,8">
+                                <VerticalStackLayout Grid.Column="0" Spacing="2">
+                                    <Label Text="{Binding Title}"
+                                           FontSize="15"
+                                           LineBreakMode="TailTruncation" />
+                                    <Label Text="{Binding DateText}"
+                                           FontSize="12"
+                                           TextColor="{AppThemeBinding Light={StaticResource Gray600}, Dark={StaticResource Gray300}}" />
+                                    <Label Text="{Binding DetailText}"
+                                           IsVisible="{Binding IsSplit}"
+                                           FontSize="12"
+                                           TextColor="{AppThemeBinding Light={StaticResource Gray600}, Dark={StaticResource Gray300}}" />
+                                </VerticalStackLayout>
+                                <Label Grid.Column="1"
+                                       Text="{Binding AmountText}"
+                                       FontSize="15"
+                                       FontAttributes="Bold"
+                                       VerticalOptions="Center" />
+                            </Grid>
+                        </DataTemplate>
+                    </CollectionView.ItemTemplate>
+                </CollectionView>
+
+            </VerticalStackLayout>
+        </ScrollView>
+    </RefreshView>
+</ContentPage>

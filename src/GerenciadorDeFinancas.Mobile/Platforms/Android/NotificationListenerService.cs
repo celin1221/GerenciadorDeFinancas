@@ -41,6 +41,42 @@ public sealed class PurchaseNotificationListener : NotificationListenerService
         Android.Util.Log.Info(Tag, "PurchaseNotificationListener criado");
     }
 
+    public override StartCommandResult OnStartCommand(Intent? intent, StartCommandFlags flags, int startId)
+    {
+        Android.Util.Log.Info(Tag, $"OnStartCommand: flags={flags}, startId={startId}");
+        StartForegroundService();
+        return StartCommandResult.Sticky;
+    }
+
+    public override void OnListenerConnected()
+    {
+        base.OnListenerConnected();
+        Android.Util.Log.Info(Tag, "NotificationListener conectado");
+        StartForegroundService();
+    }
+
+    public override void OnListenerDisconnected()
+    {
+        base.OnListenerDisconnected();
+        Android.Util.Log.Warn(Tag, "NotificationListener desconectado — tentando rebind");
+        if (OperatingSystem.IsAndroidVersionAtLeast(24))
+        {
+            var componentName = new ComponentName(this, Java.Lang.Class.FromType(typeof(PurchaseNotificationListener)));
+            RequestRebind(componentName);
+        }
+    }
+
+    public override void OnNotificationRemoved(StatusBarNotification? sbn)
+    {
+        if (sbn is null || sbn.Id != ForegroundNotificationId)
+        {
+            return;
+        }
+
+        Android.Util.Log.Warn(Tag, "Notificação foreground removida — re-postando");
+        StartForegroundService();
+    }
+
     public override void OnNotificationPosted(StatusBarNotification? sbn)
     {
         if (sbn is null)

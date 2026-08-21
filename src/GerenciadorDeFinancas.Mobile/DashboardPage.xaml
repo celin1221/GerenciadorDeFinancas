@@ -87,6 +87,11 @@
                     <CollectionView.ItemTemplate>
                         <DataTemplate x:DataType="dtos:PersonTotal">
                             <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="12" Padding="4,8">
+                                <Grid.GestureRecognizers>
+                                    <TapGestureRecognizer Tapped="OnPersonTapped"
+                                                          CommandParameter="{Binding PersonId}"
+                                                          NumberOfTapsRequired="1" />
+                                </Grid.GestureRecognizers>
                                 <Ellipse Grid.Column="0"
                                          WidthRequest="12"
                                          HeightRequest="12"

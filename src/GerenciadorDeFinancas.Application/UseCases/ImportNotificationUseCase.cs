@@ -45,7 +45,7 @@ public sealed class ImportNotificationUseCase
 
         using var unitOfWork = _unitOfWorkFactory.Create();
 
-        var dedupHash = ComputeDedupHash(parsed);
+        var dedupHash = ComputeDedupHash(parsed, notification);
         if (await unitOfWork.Purchases.GetByDedupHashAsync(dedupHash, cancellationToken) is not null)
         {
             System.Diagnostics.Debug.WriteLine($"GDF_Import: duplicata detectada (hash={dedupHash[..12]}...)");
@@ -87,9 +87,7 @@ public sealed class ImportNotificationUseCase
             merchant?.DisplayName ?? parsed.MerchantName,
             new[] { card.OwnerPersonId }));
 
-        System.Diagnostics.Debug.WriteLine("GDF_Import: prompter chamado");
-
-        return ImportNotificationResult.Created(purchase.Id);
+        return ImportNotificationResult.Created(purchase.Id, purchase.AmountCents, merchant?.DisplayName ?? parsed.MerchantName, card.OwnerPersonId);
     }
 
     private static async Task<Card?> ResolveCardAsync(
@@ -158,10 +156,11 @@ public sealed class ImportNotificationUseCase
         return merchant;
     }
 
-    private static string ComputeDedupHash(ParsedPurchase parsed)
+    private static string ComputeDedupHash(ParsedPurchase parsed, NotificationRaw notification)
     {
         var normalizedMerchant = Merchant.Normalize(parsed.MerchantName);
-        var payload = $"{parsed.BankId}|{normalizedMerchant}|{parsed.AmountCents}|{parsed.Date:yyyyMMdd}";
+        var notificationKey = notification.NotificationKey ?? notification.PostedAt.Ticks.ToString();
+        var payload = $"{parsed.BankId}|{normalizedMerchant}|{parsed.AmountCents}|{parsed.Date:yyyyMMdd}|{notificationKey}";
         var bytes = SHA256.HashData(Encoding.UTF8.GetBytes(payload));
         return Convert.ToHexString(bytes).ToLowerInvariant();
     }

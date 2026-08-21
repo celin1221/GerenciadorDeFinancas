@@ -62,6 +62,14 @@ public partial class DashboardPage : ContentPage
         await Shell.Current.GoToAsync(nameof(NotificationButtonsPage));
     }
 
+    private async void OnPersonTapped(object? sender, TappedEventArgs e)
+    {
+        if (e.Parameter is Guid personId)
+        {
+            await Shell.Current.GoToAsync($"{nameof(PersonDetailPage)}?PersonId={personId}");
+        }
+    }
+
     private async void OnTestNotificationClicked(object? sender, EventArgs e)
     {
         var raw = new NotificationRaw(

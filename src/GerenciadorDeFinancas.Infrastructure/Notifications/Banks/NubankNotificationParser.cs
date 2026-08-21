@@ -9,15 +9,16 @@ public sealed class NubankNotificationParser : NotificationParserBase
     private static readonly string[] MerchantPhrasesToRemove =
     {
         "compra de", "compra aprovada de", "aprovada em", "pagamento aprovado de", "pagamento de",
+        "você recebeu uma transferência de",
     };
 
     public override string BankId => KnownBanks.Nubank;
 
     protected override IReadOnlyList<string> SupportedPackages { get; } =
-        new[] { KnownBanks.NubankPackage };
+        new[] { KnownBanks.NubankPackage, KnownBanks.NubankPackageProduction };
 
     public override bool IsPurchaseLike(NotificationRaw notification) =>
-        ContainsAny(Combined(notification), "compra", "pagamento", "aprovad");
+        ContainsAny(Combined(notification), "compra", "pagamento", "aprovad", "transferência");
 
     public override ParsedPurchase? TryParse(NotificationRaw notification)
     {
