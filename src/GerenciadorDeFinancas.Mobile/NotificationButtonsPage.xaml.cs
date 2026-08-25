@@ -1,5 +1,5 @@
-using GerenciadorDeFinancas.Application;
-using GerenciadorDeFinancas.Domain.Abstractions;
+using GerenciadorDeFinancas.Application.Dtos;
+using GerenciadorDeFinancas.Application.UseCases;
 
 namespace GerenciadorDeFinancas;
 
@@ -24,24 +24,45 @@ public sealed class NotificationButtonRow
 
 public partial class NotificationButtonsPage : ContentPage
 {
-    private readonly IUnitOfWorkFactory _unitOfWorkFactory;
+    private readonly ListNotificationButtonsUseCase _listUseCase;
+    private readonly DeleteNotificationButtonUseCase _deleteUseCase;
 
-    public NotificationButtonsPage(IUnitOfWorkFactory unitOfWorkFactory)
+    public NotificationButtonsPage(
+        ListNotificationButtonsUseCase listUseCase,
+        DeleteNotificationButtonUseCase deleteUseCase)
     {
         InitializeComponent();
-        _unitOfWorkFactory = unitOfWorkFactory;
+        _listUseCase = listUseCase;
+        _deleteUseCase = deleteUseCase;
     }
 
     protected override async void OnAppearing()
     {
         base.OnAppearing();
-        await LoadAsync();
+        try
+        {
+            await LoadAsync();
+        }
+        catch (Exception ex)
+        {
+            await DisplayAlertAsync("Erro", ex.Message, "OK");
+        }
     }
 
     private async void OnRefreshing(object? sender, EventArgs e)
     {
-        await LoadAsync();
-        Refresh.IsRefreshing = false;
+        try
+        {
+            await LoadAsync();
+        }
+        catch (Exception ex)
+        {
+            await DisplayAlertAsync("Erro", ex.Message, "OK");
+        }
+        finally
+        {
+            Refresh.IsRefreshing = false;
+        }
     }
 
     private async void OnAddClicked(object? sender, EventArgs e)
@@ -70,38 +91,22 @@ public partial class NotificationButtonsPage : ContentPage
             return;
         }
 
-        using var unitOfWork = _unitOfWorkFactory.Create();
-        var button = await unitOfWork.NotificationButtons.GetByIdAsync(id);
-        if (button is not null)
+        try
         {
-            unitOfWork.NotificationButtons.Remove(button);
-            await unitOfWork.SaveChangesAsync();
+            await _deleteUseCase.ExecuteAsync(id);
+            await LoadAsync();
         }
-
-        await LoadAsync();
+        catch (Exception ex)
+        {
+            await DisplayAlertAsync("Erro", ex.Message, "OK");
+        }
     }
 
     private async Task LoadAsync()
     {
-        using var unitOfWork = _unitOfWorkFactory.Create();
-        var buttons = await unitOfWork.NotificationButtons.ListOrderedAsync();
-
-        var rows = new List<NotificationButtonRow>();
-        foreach (var button in buttons)
-        {
-            var personNames = button.Persons
-                .Select(bp => bp.Person?.Name ?? "?")
-                .ToList();
-            var label = personNames.Count > 0
-                ? LabelGenerator.Generate(personNames)
-                : button.Label;
-            var actionDescription = personNames.Count == 1
-                ? $"Atribui tudo a {personNames[0]}"
-                : $"Divide entre {string.Join(" e ", personNames)}";
-
-            rows.Add(new NotificationButtonRow(button.Id, button.Label, string.Join(", ", personNames), actionDescription));
-        }
-
-        ButtonsView.ItemsSource = rows;
+        var items = await _listUseCase.ExecuteAsync();
+        ButtonsView.ItemsSource = items
+            .Select(item => new NotificationButtonRow(item.Id, item.Label, item.PersonNames, item.ActionDescription))
+            .ToList();
     }
 }

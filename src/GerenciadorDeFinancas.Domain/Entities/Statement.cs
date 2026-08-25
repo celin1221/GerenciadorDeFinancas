@@ -14,9 +14,9 @@ public sealed class Statement
 
     public int YearMonth { get; private set; }
 
-    public DateOnly OpeningDate { get; }
+    public DateOnly OpeningDate { get; private set; }
 
-    public DateOnly ClosingDate { get; }
+    public DateOnly ClosingDate { get; private set; }
 
     public StatementStatus Status { get; private set; }
 

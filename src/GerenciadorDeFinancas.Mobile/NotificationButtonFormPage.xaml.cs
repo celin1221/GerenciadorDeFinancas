@@ -1,6 +1,6 @@
 using GerenciadorDeFinancas.Application;
-using GerenciadorDeFinancas.Domain.Abstractions;
-using GerenciadorDeFinancas.Domain.Entities;
+using GerenciadorDeFinancas.Application.UseCases;
+using GerenciadorDeFinancas.Domain.Exceptions;
 
 namespace GerenciadorDeFinancas;
 
@@ -23,7 +23,8 @@ public sealed class PersonCheckRow
 [QueryProperty(nameof(ButtonIdQueryString), "ButtonId")]
 public partial class NotificationButtonFormPage : ContentPage
 {
-    private readonly IUnitOfWorkFactory _unitOfWorkFactory;
+    private readonly GetNotificationButtonForEditUseCase _getForEditUseCase;
+    private readonly SaveNotificationButtonUseCase _saveUseCase;
     private Guid? _editingButtonId;
     private List<PersonCheckRow> _personRows = new();
 
@@ -39,36 +40,39 @@ public partial class NotificationButtonFormPage : ContentPage
         }
     }
 
-    public NotificationButtonFormPage(IUnitOfWorkFactory unitOfWorkFactory)
+    public NotificationButtonFormPage(
+        GetNotificationButtonForEditUseCase getForEditUseCase,
+        SaveNotificationButtonUseCase saveUseCase)
     {
         InitializeComponent();
-        _unitOfWorkFactory = unitOfWorkFactory;
+        _getForEditUseCase = getForEditUseCase;
+        _saveUseCase = saveUseCase;
     }
 
     protected override async void OnAppearing()
     {
         base.OnAppearing();
-        await LoadAsync();
+        try
+        {
+            await LoadAsync();
+        }
+        catch (Exception ex)
+        {
+            await DisplayAlertAsync("Erro", ex.Message, "OK");
+        }
     }
 
     private async Task LoadAsync()
     {
-        using var unitOfWork = _unitOfWorkFactory.Create();
-        var activePersons = await unitOfWork.Persons.ListActiveAsync();
+        var data = await _getForEditUseCase.ExecuteAsync(_editingButtonId);
 
-        HashSet<Guid>? selectedPersonIds = null;
-        if (_editingButtonId.HasValue)
+        if (data.CurrentLabel is not null)
         {
-            var button = await unitOfWork.NotificationButtons.GetWithPersonsAsync(_editingButtonId.Value);
-            if (button is not null)
-            {
-                LabelEntry.Text = button.Label;
-                selectedPersonIds = button.Persons.Select(bp => bp.PersonId).ToHashSet();
-            }
+            LabelEntry.Text = data.CurrentLabel;
         }
 
-        _personRows = activePersons
-            .Select(p => new PersonCheckRow(p.Id, p.Name, selectedPersonIds?.Contains(p.Id) == true))
+        _personRows = data.ActivePersons
+            .Select(p => new PersonCheckRow(p.Id, p.Name, data.SelectedPersonIds?.Contains(p.Id) == true))
             .ToList();
 
         PersonsView.ItemsSource = _personRows;
@@ -142,7 +146,7 @@ public partial class NotificationButtonFormPage : ContentPage
         }
 
         var label = string.IsNullOrWhiteSpace(LabelEntry.Text)
-            ? LabelGenerator.Generate(_personRows.Where(r => r.IsChecked).Select(r => r.Name).ToList())
+            ? Application.LabelGenerator.Generate(_personRows.Where(r => r.IsChecked).Select(r => r.Name).ToList())
             : LabelEntry.Text.Trim();
 
         if (label.Length > 20)
@@ -151,32 +155,14 @@ public partial class NotificationButtonFormPage : ContentPage
             return;
         }
 
-        using var unitOfWork = _unitOfWorkFactory.Create();
-
-        if (_editingButtonId.HasValue)
+        try
         {
-            var button = await unitOfWork.NotificationButtons.GetByIdAsync(_editingButtonId.Value);
-            if (button is not null)
-            {
-                button.SetLabel(label);
-                button.SetPersons(selectedPersonIds);
-            }
+            await _saveUseCase.ExecuteAsync(_editingButtonId, label, selectedPersonIds);
+            await Shell.Current.GoToAsync("..");
         }
-        else
+        catch (DomainException ex)
         {
-            var existingButtons = await unitOfWork.NotificationButtons.ListOrderedAsync();
-            if (existingButtons.Count >= 3)
-            {
-                await DisplayAlertAsync("Limite", "Máximo de 3 botões permitidos.", "OK");
-                return;
-            }
-
-            var button = new NotificationButton(label, existingButtons.Count);
-            button.SetPersons(selectedPersonIds);
-            unitOfWork.NotificationButtons.Add(button);
+            await DisplayAlertAsync("Erro", ex.Message, "OK");
         }
-
-        await unitOfWork.SaveChangesAsync();
-        await Shell.Current.GoToAsync("..");
     }
 }

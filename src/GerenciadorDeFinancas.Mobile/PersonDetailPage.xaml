@@ -63,7 +63,7 @@
                     </CollectionView.ItemTemplate>
                 </CollectionView>
 
-                <Label Text="COMPRAS"
+                <Label Text="COMPRAS DA FATURA ATUAL"
                        FontSize="13"
                        TextColor="{AppThemeBinding Light={StaticResource Gray600}, Dark={StaticResource Gray300}}"
                        FontAttributes="Bold"

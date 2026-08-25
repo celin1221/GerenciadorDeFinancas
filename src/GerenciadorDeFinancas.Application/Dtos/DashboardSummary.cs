@@ -10,5 +10,6 @@ public sealed record DashboardSummary(
     int ClassifiedCount,
     long ClassifiedCents,
     int IgnoredCount,
+    int AllTimePurchaseCount,
     IReadOnlyList<PersonTotal> Persons,
     IReadOnlyList<CardTotal> Cards);

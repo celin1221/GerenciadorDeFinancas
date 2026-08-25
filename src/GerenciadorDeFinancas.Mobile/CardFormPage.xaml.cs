@@ -48,11 +48,18 @@ public partial class CardFormPage : ContentPage, IQueryAttributable
         ClosingDayPicker.SelectedItem = "15";
         DueDayPicker.SelectedItem = "25";
 
-        await LoadPeopleAsync();
-
-        if (_cardId is Guid id)
+        try
         {
-            await LoadCardAsync(id);
+            await LoadPeopleAsync();
+
+            if (_cardId is Guid id)
+            {
+                await LoadCardAsync(id);
+            }
+        }
+        catch (Exception ex)
+        {
+            await DisplayAlertAsync("Erro", ex.Message, "OK");
         }
     }
 

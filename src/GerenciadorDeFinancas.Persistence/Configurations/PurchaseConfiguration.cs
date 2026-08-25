@@ -14,6 +14,7 @@ public sealed class PurchaseConfiguration : IEntityTypeConfiguration<Purchase>
         builder.Property(purchase => purchase.Description).HasMaxLength(500).IsRequired();
         builder.Property(purchase => purchase.DedupHash).HasMaxLength(64);
         builder.Property(purchase => purchase.RawNotificationText);
+        builder.HasIndex(purchase => purchase.InstallmentGroupId);
         builder.HasIndex(purchase => purchase.DedupHash).IsUnique();
         builder.HasIndex(purchase => purchase.Status);
         builder.HasIndex(purchase => purchase.StatementId);

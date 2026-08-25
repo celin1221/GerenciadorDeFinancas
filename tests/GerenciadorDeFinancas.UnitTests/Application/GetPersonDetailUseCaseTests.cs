@@ -1,3 +1,4 @@
+using GerenciadorDeFinancas.Application.Services;
 using GerenciadorDeFinancas.Application.UseCases;
 using GerenciadorDeFinancas.Domain.Abstractions;
 using GerenciadorDeFinancas.Domain.Entities;
@@ -122,10 +123,13 @@ public class GetPersonDetailUseCaseTests
 
         using (var unitOfWork = _factory.Create())
         {
+            var card = await unitOfWork.Cards.GetByIdAsync(cardId);
             var merchant = new Merchant("Padaria Central");
             unitOfWork.Merchants.Add(merchant);
             var purchase = new Purchase(cardId, 2000, DateTime.UtcNow, "Compra de R$ 20,00");
             purchase.SetMerchant(merchant.Id);
+            var statement = await StatementResolver.ResolveAsync(unitOfWork, card!, DateTime.UtcNow);
+            purchase.MoveToStatement(statement.Id);
             purchase.AssignToSingle(personId);
             unitOfWork.Purchases.Add(purchase);
             foreach (var share in purchase.Shares)
@@ -179,7 +183,10 @@ public class GetPersonDetailUseCaseTests
         IReadOnlyList<(Guid PersonId, long Amount)> shares)
     {
         using var unitOfWork = _factory.Create();
+        var card = await unitOfWork.Cards.GetByIdAsync(cardId);
         var purchase = new Purchase(cardId, amountCents, DateTime.UtcNow, "Compra teste");
+        var statement = await StatementResolver.ResolveAsync(unitOfWork, card!, DateTime.UtcNow);
+        purchase.MoveToStatement(statement.Id);
         purchase.SetShares(shares.Select(share => (share.PersonId, share.Amount)).ToList());
         purchase.MarkClassified();
         unitOfWork.Purchases.Add(purchase);

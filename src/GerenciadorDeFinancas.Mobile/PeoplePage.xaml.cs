@@ -40,13 +40,30 @@ public partial class PeoplePage : ContentPage
     protected override async void OnAppearing()
     {
         base.OnAppearing();
-        await LoadAsync();
+        try
+        {
+            await LoadAsync();
+        }
+        catch (Exception ex)
+        {
+            await DisplayAlertAsync("Erro", ex.Message, "OK");
+        }
     }
 
     private async void OnRefreshing(object? sender, EventArgs e)
     {
-        await LoadAsync();
-        Refresh.IsRefreshing = false;
+        try
+        {
+            await LoadAsync();
+        }
+        catch (Exception ex)
+        {
+            await DisplayAlertAsync("Erro", ex.Message, "OK");
+        }
+        finally
+        {
+            Refresh.IsRefreshing = false;
+        }
     }
 
     private async void OnAddClicked(object? sender, EventArgs e) =>

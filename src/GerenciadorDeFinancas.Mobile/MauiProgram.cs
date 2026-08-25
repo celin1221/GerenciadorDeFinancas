@@ -51,6 +51,19 @@ namespace GerenciadorDeFinancas
             services.AddTransient<ListCardsUseCase>();
             services.AddTransient<ListPendingPurchasesUseCase>();
             services.AddTransient<GetPendingPurchaseUseCase>();
+            services.AddTransient<DeclareInstallmentsUseCase>();
+            services.AddTransient<CreateManualPurchaseUseCase>();
+            services.AddTransient<ListInvoicesUseCase>();
+            services.AddTransient<GetInvoiceDetailUseCase>();
+            services.AddTransient<UpdatePurchaseUseCase>();
+            services.AddTransient<ReopenPurchaseUseCase>();
+            services.AddTransient<DeletePurchaseUseCase>();
+            services.AddTransient<AssignMissingStatementsUseCase>();
+            services.AddTransient<ListNotificationButtonsUseCase>();
+            services.AddTransient<DeleteNotificationButtonUseCase>();
+            services.AddTransient<GetNotificationButtonForEditUseCase>();
+            services.AddTransient<SaveNotificationButtonUseCase>();
+            services.AddTransient<GetAllPurchasesUseCase>();
 
             services.AddTransient<AppShell>();
             services.AddTransient<DashboardPage>();
@@ -62,6 +75,11 @@ namespace GerenciadorDeFinancas
             services.AddTransient<CardFormPage>();
             services.AddTransient<NotificationButtonsPage>();
             services.AddTransient<NotificationButtonFormPage>();
+            services.AddTransient<FaturasPage>();
+            services.AddTransient<InvoiceDetailPage>();
+            services.AddTransient<ManualPurchaseFormPage>();
+            services.AddTransient<EditPurchaseFormPage>();
+            services.AddTransient<AllPurchasesPage>();
 
 #if DEBUG
             services.AddTransient<DemoDataInitializer>();

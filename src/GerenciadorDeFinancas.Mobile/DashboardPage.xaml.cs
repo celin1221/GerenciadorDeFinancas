@@ -48,13 +48,30 @@ public partial class DashboardPage : ContentPage
     protected override async void OnAppearing()
     {
         base.OnAppearing();
-        await LoadAsync();
+        try
+        {
+            await LoadAsync();
+        }
+        catch (Exception ex)
+        {
+            await DisplayAlertAsync("Erro", ex.Message, "OK");
+        }
     }
 
     private async void OnRefreshing(object? sender, EventArgs e)
     {
-        await LoadAsync();
-        Refresh.IsRefreshing = false;
+        try
+        {
+            await LoadAsync();
+        }
+        catch (Exception ex)
+        {
+            await DisplayAlertAsync("Erro", ex.Message, "OK");
+        }
+        finally
+        {
+            Refresh.IsRefreshing = false;
+        }
     }
 
     private async void OnSettingsClicked(object? sender, EventArgs e)
@@ -103,6 +120,11 @@ public partial class DashboardPage : ContentPage
         }
     }
 
+    private async void OnAllPurchasesTapped(object? sender, TappedEventArgs e)
+    {
+        await Shell.Current.GoToAsync(nameof(AllPurchasesPage));
+    }
+
     private async Task LoadAsync()
     {
         var summary = await _useCase.ExecuteAsync();
@@ -112,11 +134,14 @@ public partial class DashboardPage : ContentPage
     private void Render(DashboardSummary summary)
     {
         TotalLabel.Text = Money.FromCents(summary.ClassifiedCents).ToString();
-        TotalDetailLabel.Text = $"{summary.ClassifiedCount} compras classificadas";
+        TotalDetailLabel.Text = $"{summary.ClassifiedCount} compras classificadas na fatura atual";
         PendingAmountLabel.Text = Money.FromCents(summary.PendingCents).ToString();
         PendingCountLabel.Text = $"{summary.PendingCount} compras";
         IgnoredLabel.Text = $"{summary.IgnoredCount}";
         PersonsView.ItemsSource = summary.Persons;
         CardsView.ItemsSource = summary.Cards;
+        AllPurchasesLabel.Text = summary.AllTimePurchaseCount == 0
+            ? "Nenhuma compra classificada"
+            : $"{summary.AllTimePurchaseCount} compras";
     }
 }

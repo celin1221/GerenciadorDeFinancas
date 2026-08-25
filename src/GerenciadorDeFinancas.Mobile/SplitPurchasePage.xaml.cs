@@ -48,6 +48,8 @@ public partial class SplitPurchasePage : ContentPage, IQueryAttributable
     private readonly ListPersonsUseCase _listPersonsUseCase;
     private readonly SplitPurchaseUseCase _splitUseCase;
     private readonly ClassifyPurchaseUseCase _classifyUseCase;
+    private readonly DeclareInstallmentsUseCase _declareInstallmentsUseCase;
+    private readonly DeletePurchaseUseCase _deletePurchaseUseCase;
     private IReadOnlyList<SplitPersonRow> _rows = Array.Empty<SplitPersonRow>();
     private Guid _purchaseId;
 
@@ -55,13 +57,17 @@ public partial class SplitPurchasePage : ContentPage, IQueryAttributable
         GetPendingPurchaseUseCase getPurchaseUseCase,
         ListPersonsUseCase listPersonsUseCase,
         SplitPurchaseUseCase splitUseCase,
-        ClassifyPurchaseUseCase classifyUseCase)
+        ClassifyPurchaseUseCase classifyUseCase,
+        DeclareInstallmentsUseCase declareInstallmentsUseCase,
+        DeletePurchaseUseCase deletePurchaseUseCase)
     {
         InitializeComponent();
         _getPurchaseUseCase = getPurchaseUseCase;
         _listPersonsUseCase = listPersonsUseCase;
         _splitUseCase = splitUseCase;
         _classifyUseCase = classifyUseCase;
+        _declareInstallmentsUseCase = declareInstallmentsUseCase;
+        _deletePurchaseUseCase = deletePurchaseUseCase;
     }
 
     public void ApplyQueryAttributes(IDictionary<string, object> query)
@@ -93,6 +99,19 @@ public partial class SplitPurchasePage : ContentPage, IQueryAttributable
         PurchaseTitleLabel.Text = purchase.MerchantName ?? purchase.Description;
         PurchaseCardLabel.Text = purchase.CardName;
         PurchaseAmountLabel.Text = Money.FromCents(purchase.AmountCents).ToString();
+
+        if (purchase.TotalInstallments > 1)
+        {
+            InstallmentsLayout.IsVisible = false;
+            DeclareInstallmentsButton.IsVisible = false;
+            InstallmentBadgeLabel.IsVisible = true;
+            InstallmentBadgeLabel.Text = $"Parcela {purchase.InstallmentNumber} de {purchase.TotalInstallments}";
+        }
+        else
+        {
+            InstallmentsLayout.IsVisible = true;
+            DeclareInstallmentsButton.IsVisible = true;
+        }
 
         var people = await _listPersonsUseCase.ExecuteAsync();
         _rows = people
@@ -183,6 +202,63 @@ public partial class SplitPurchasePage : ContentPage, IQueryAttributable
         try
         {
             await _splitUseCase.ExecuteCustomAsync(_purchaseId, shares);
+            await Shell.Current.GoToAsync("..");
+        }
+        catch (DomainException ex)
+        {
+            await DisplayAlertAsync("Erro", ex.Message, "OK");
+        }
+    }
+
+    private async void OnDeclareInstallmentsClicked(object? sender, EventArgs e)
+    {
+        if (!int.TryParse(InstallmentsEntry.Text?.Trim(), out var total) || total < 2)
+        {
+            await DisplayAlertAsync("Erro", "Informe um número de parcelas maior que 1.", "OK");
+            return;
+        }
+
+        var confirmed = await DisplayAlertAsync(
+            "Parcelar compra",
+            $"A compra será dividida em {total} compras mensais (uma por fatura). A divisão entre pessoas que você fizer na primeira será copiada para as outras. Continuar?",
+            "Parcelar",
+            "Cancelar");
+        if (!confirmed)
+        {
+            return;
+        }
+
+        try
+        {
+            await _declareInstallmentsUseCase.ExecuteAsync(_purchaseId, total);
+            await Shell.Current.GoToAsync("..");
+        }
+        catch (DomainException ex)
+        {
+            await DisplayAlertAsync("Erro", ex.Message, "OK");
+        }
+    }
+
+    private async void OnEditPurchaseClicked(object? sender, EventArgs e)
+    {
+        await Shell.Current.GoToAsync($"{nameof(EditPurchaseFormPage)}?PurchaseId={_purchaseId}");
+    }
+
+    private async void OnDeletePurchaseClicked(object? sender, EventArgs e)
+    {
+        var confirmed = await DisplayAlertAsync(
+            "Excluir compra",
+            "A compra e suas divisões serão removidas. Continuar?",
+            "Excluir",
+            "Cancelar");
+        if (!confirmed)
+        {
+            return;
+        }
+
+        try
+        {
+            await _deletePurchaseUseCase.ExecuteAsync(_purchaseId);
             await Shell.Current.GoToAsync("..");
         }
         catch (DomainException ex)

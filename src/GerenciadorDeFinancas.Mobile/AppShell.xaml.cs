@@ -11,6 +11,10 @@
             Routing.RegisterRoute(nameof(SplitPurchasePage), typeof(SplitPurchasePage));
             Routing.RegisterRoute(nameof(NotificationButtonsPage), typeof(NotificationButtonsPage));
             Routing.RegisterRoute(nameof(NotificationButtonFormPage), typeof(NotificationButtonFormPage));
+            Routing.RegisterRoute(nameof(ManualPurchaseFormPage), typeof(ManualPurchaseFormPage));
+            Routing.RegisterRoute(nameof(InvoiceDetailPage), typeof(InvoiceDetailPage));
+            Routing.RegisterRoute(nameof(EditPurchaseFormPage), typeof(EditPurchaseFormPage));
+            Routing.RegisterRoute(nameof(AllPurchasesPage), typeof(AllPurchasesPage));
         }
     }
 }

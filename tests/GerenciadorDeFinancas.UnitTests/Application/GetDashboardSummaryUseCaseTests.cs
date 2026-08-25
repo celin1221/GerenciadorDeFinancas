@@ -1,6 +1,9 @@
+using GerenciadorDeFinancas.Application.Services;
 using GerenciadorDeFinancas.Application.UseCases;
 using GerenciadorDeFinancas.Domain.Abstractions;
 using GerenciadorDeFinancas.Domain.Entities;
+using GerenciadorDeFinancas.Domain.Enums;
+using GerenciadorDeFinancas.Domain.ValueObjects;
 
 namespace GerenciadorDeFinancas.UnitTests.Application;
 
@@ -20,10 +23,11 @@ public class GetDashboardSummaryUseCaseTests
         Assert.Equal(0, summary.IgnoredCount);
         Assert.Empty(summary.Persons);
         Assert.Empty(summary.Cards);
+        Assert.Equal(0, summary.AllTimePurchaseCount);
     }
 
     [Fact]
-    public async Task ExecuteAsync_AggregatesTotalsPerPersonAndCard()
+    public async Task ExecuteAsync_AggregatesCurrentInvoiceTotalsPerPersonAndCard()
     {
         var (people, cardId) = await ArrangeAsync();
 
@@ -32,7 +36,8 @@ public class GetDashboardSummaryUseCaseTests
 
         Assert.Equal(1, summary.ClassifiedCount);
         Assert.Equal(30000, summary.ClassifiedCents);
-        Assert.Equal(0, summary.PendingCount);
+        Assert.Equal(1, summary.AllTimePurchaseCount);
+        Assert.Equal(0, summary.PendingCents);
         Assert.Equal(0, summary.IgnoredCount);
 
         Assert.Equal(2, summary.Persons.Count);
@@ -47,7 +52,53 @@ public class GetDashboardSummaryUseCaseTests
     }
 
     [Fact]
-    public async Task ExecuteAsync_IncludesPendingAndIgnoredCounts()
+    public async Task ExecuteAsync_ExcludesPurchasesFromOtherStatements()
+    {
+        var (people, cardId) = await ArrangeAsync();
+
+        using (var unitOfWork = _factory.Create())
+        {
+            var card = await unitOfWork.Cards.GetByIdAsync(cardId);
+            var today = DateOnly.FromDateTime(DateTime.Today);
+            var currentPeriod = StatementPeriodCalculator.Calculate(card!.ClosingDay, today);
+            var previousYearMonth = AddMonths(currentPeriod.YearMonth, -1);
+
+            var pastPurchase = new Purchase(cardId, 70000, DateTime.UtcNow, "Compra de fatura passada");
+            pastPurchase.SetShares(new[] { (people[0], 70000L) });
+            pastPurchase.MarkClassified();
+            unitOfWork.Purchases.Add(pastPurchase);
+            foreach (var share in pastPurchase.Shares)
+            {
+                unitOfWork.Purchases.AddShare(share);
+            }
+
+            var previousStatement = await unitOfWork.Statements.GetByCardAndYearMonthAsync(cardId, previousYearMonth);
+            if (previousStatement is null)
+            {
+                var year = previousYearMonth / 100;
+                var month = previousYearMonth % 100;
+                previousStatement = new Statement(
+                    cardId,
+                    previousYearMonth,
+                    new DateOnly(year, month, 1),
+                    new DateOnly(year, month, DateTime.DaysInMonth(year, month)));
+                unitOfWork.Statements.Add(previousStatement);
+            }
+
+            pastPurchase.MoveToStatement(previousStatement.Id);
+            await unitOfWork.SaveChangesAsync();
+        }
+
+        var useCase = new GetDashboardSummaryUseCase(_factory);
+        var summary = await useCase.ExecuteAsync();
+
+        Assert.Equal(1, summary.ClassifiedCount);
+        Assert.Equal(30000, summary.ClassifiedCents);
+        Assert.Equal(30000, Assert.Single(summary.Cards).TotalCents);
+    }
+
+    [Fact]
+    public async Task ExecuteAsync_IncludesPendingAndIgnoredCountsGlobally()
     {
         var (people, cardId) = await ArrangeAsync();
 
@@ -69,6 +120,26 @@ public class GetDashboardSummaryUseCaseTests
         Assert.Equal(5000, summary.PendingCents);
         Assert.Equal(1, summary.IgnoredCount);
         Assert.Equal(30000, summary.ClassifiedCents);
+    }
+
+    [Fact]
+    public async Task ExecuteAsync_IncludesCardWithoutCurrentPurchases()
+    {
+        await ArrangeAsync();
+
+        using (var unitOfWork = _factory.Create())
+        {
+            var marcelo = (await unitOfWork.Persons.ListActiveAsync()).Single(person => person.Name == "Marcelo");
+            var inter = new Card("Inter", "inter", "5678", marcelo.Id, closingDay: 20, dueDay: 5);
+            unitOfWork.Cards.Add(inter);
+            await unitOfWork.SaveChangesAsync();
+        }
+
+        var useCase = new GetDashboardSummaryUseCase(_factory);
+        var summary = await useCase.ExecuteAsync();
+
+        Assert.Equal(2, summary.Cards.Count);
+        Assert.Contains(summary.Cards, card => card.Name == "Inter" && card.TotalCents == 0);
     }
 
     [Fact]
@@ -110,7 +181,14 @@ public class GetDashboardSummaryUseCaseTests
 
         using (var unitOfWork = _factory.Create())
         {
-            var purchase = new Purchase(cardId, 30000, DateTime.UtcNow, "Jantar");
+            var card = await unitOfWork.Cards.GetByIdAsync(cardId);
+            var statement = await StatementResolver.ResolveAsync(
+                unitOfWork,
+                card!,
+                DateTime.Today,
+                CancellationToken.None);
+
+            var purchase = new Purchase(cardId, 30000, DateTime.UtcNow, "Jantar", statementId: statement.Id);
             purchase.SetShares(new[]
             {
                 (people[0], 20000L),
@@ -127,5 +205,13 @@ public class GetDashboardSummaryUseCaseTests
         }
 
         return (people, cardId);
+    }
+
+    private static int AddMonths(int yearMonth, int months)
+    {
+        var year = yearMonth / 100;
+        var month = yearMonth % 100;
+        var index = year * 12 + (month - 1) + months;
+        return (index / 12) * 100 + (index % 12) + 1;
     }
 }

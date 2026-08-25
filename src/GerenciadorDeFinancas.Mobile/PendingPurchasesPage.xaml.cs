@@ -1,3 +1,4 @@
+using GerenciadorDeFinancas.Application.Dtos;
 using GerenciadorDeFinancas.Application.UseCases;
 
 namespace GerenciadorDeFinancas;
@@ -14,13 +15,18 @@ public sealed class PendingPurchaseRow
 
     public string DateText { get; }
 
-    public PendingPurchaseRow(Guid id, string title, string cardName, long amountCents, string dateText)
+    public string InstallmentText { get; }
+
+    public bool HasInstallment => !string.IsNullOrEmpty(InstallmentText);
+
+    public PendingPurchaseRow(PendingPurchaseItem item)
     {
-        Id = id;
-        Title = title;
-        CardName = cardName;
-        AmountCents = amountCents;
-        DateText = dateText;
+        Id = item.Id;
+        Title = item.MerchantName ?? item.Description;
+        CardName = item.CardName;
+        AmountCents = item.AmountCents;
+        DateText = item.Date.ToString("dd/MM/yyyy");
+        InstallmentText = item.InstallmentText;
     }
 }
 
@@ -37,13 +43,30 @@ public partial class PendingPurchasesPage : ContentPage
     protected override async void OnAppearing()
     {
         base.OnAppearing();
-        await LoadAsync();
+        try
+        {
+            await LoadAsync();
+        }
+        catch (Exception ex)
+        {
+            await DisplayAlertAsync("Erro", ex.Message, "OK");
+        }
     }
 
     private async void OnRefreshing(object? sender, EventArgs e)
     {
-        await LoadAsync();
-        Refresh.IsRefreshing = false;
+        try
+        {
+            await LoadAsync();
+        }
+        catch (Exception ex)
+        {
+            await DisplayAlertAsync("Erro", ex.Message, "OK");
+        }
+        finally
+        {
+            Refresh.IsRefreshing = false;
+        }
     }
 
     private async void OnSplitClicked(object? sender, EventArgs e)
@@ -54,16 +77,16 @@ public partial class PendingPurchasesPage : ContentPage
         }
     }
 
+    private async void OnAddManualClicked(object? sender, EventArgs e)
+    {
+        await Shell.Current.GoToAsync(nameof(ManualPurchaseFormPage));
+    }
+
     private async Task LoadAsync()
     {
         var items = await _listUseCase.ExecuteAsync();
         PendingView.ItemsSource = items
-            .Select(purchase => new PendingPurchaseRow(
-                purchase.Id,
-                purchase.MerchantName ?? purchase.Description,
-                purchase.CardName,
-                purchase.AmountCents,
-                purchase.Date.ToString("dd/MM/yyyy")))
+            .Select(item => new PendingPurchaseRow(item))
             .ToList();
     }
 }

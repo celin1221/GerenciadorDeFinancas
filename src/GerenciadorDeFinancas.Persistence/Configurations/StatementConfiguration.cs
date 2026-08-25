@@ -12,6 +12,8 @@ public sealed class StatementConfiguration : IEntityTypeConfiguration<Statement>
         builder.HasKey(statement => statement.Id);
         builder.HasIndex(statement => new { statement.CardId, statement.YearMonth }).IsUnique();
         builder.Property(statement => statement.YearMonth).IsRequired();
+        builder.Property(statement => statement.OpeningDate).IsRequired();
+        builder.Property(statement => statement.ClosingDate).IsRequired();
         builder.HasOne(statement => statement.Card)
             .WithMany()
             .HasForeignKey(statement => statement.CardId)

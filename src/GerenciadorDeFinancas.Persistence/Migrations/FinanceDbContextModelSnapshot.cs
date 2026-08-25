@@ -212,6 +212,12 @@ namespace GerenciadorDeFinancas.Persistence.Migrations
                         .HasMaxLength(500)
                         .HasColumnType("TEXT");
 
+                    b.Property<Guid?>("InstallmentGroupId")
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("InstallmentNumber")
+                        .HasColumnType("INTEGER");
+
                     b.Property<Guid?>("MerchantId")
                         .HasColumnType("TEXT");
 
@@ -227,6 +233,9 @@ namespace GerenciadorDeFinancas.Persistence.Migrations
                     b.Property<int>("Status")
                         .HasColumnType("INTEGER");
 
+                    b.Property<int>("TotalInstallments")
+                        .HasColumnType("INTEGER");
+
                     b.HasKey("Id");
 
                     b.HasIndex("CardId");
@@ -235,6 +244,8 @@ namespace GerenciadorDeFinancas.Persistence.Migrations
 
                     b.HasIndex("DedupHash")
                         .IsUnique();
+
+                    b.HasIndex("InstallmentGroupId");
 
                     b.HasIndex("MerchantId");
 
@@ -276,6 +287,12 @@ namespace GerenciadorDeFinancas.Persistence.Migrations
                         .HasColumnType("TEXT");
 
                     b.Property<Guid>("CardId")
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateOnly>("ClosingDate")
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateOnly>("OpeningDate")
                         .HasColumnType("TEXT");
 
                     b.Property<int>("Status")

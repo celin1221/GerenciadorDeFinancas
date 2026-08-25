@@ -24,7 +24,7 @@
                         StrokeThickness="0"
                         Padding="16">
                     <VerticalStackLayout Spacing="4">
-                        <Label Text="TOTAL DO MÊS"
+                        <Label Text="FATURA ATUAL"
                                TextColor="{AppThemeBinding Light={StaticResource White}, Dark={StaticResource PrimaryDarkText}}"
                                FontSize="14" />
                         <Label x:Name="TotalLabel"
@@ -72,7 +72,7 @@
                     </Border>
                 </Grid>
 
-                <Label Text="DIVISÕES POR PESSOA"
+                <Label Text="DIVISÕES POR PESSOA (FATURA ATUAL)"
                        FontSize="13"
                        TextColor="{AppThemeBinding Light={StaticResource Gray600}, Dark={StaticResource Gray300}}"
                        FontAttributes="Bold"
@@ -120,7 +120,7 @@
 
                 <CollectionView x:Name="CardsView">
                     <CollectionView.EmptyView>
-                        <Label Text="Nenhuma compra classificada ainda."
+                        <Label Text="Nenhuma compra classificada na fatura atual."
                                FontSize="13"
                                TextColor="{AppThemeBinding Light={StaticResource Gray400}, Dark={StaticResource Gray500}}" />
                     </CollectionView.EmptyView>
@@ -140,6 +140,32 @@
                         </DataTemplate>
                     </CollectionView.ItemTemplate>
                 </CollectionView>
+
+                <Border BackgroundColor="{AppThemeBinding Light={StaticResource Secondary}, Dark={StaticResource Gray900}}"
+                        StrokeShape="RoundRectangle 12"
+                        StrokeThickness="0"
+                        Padding="16">
+                    <Border.GestureRecognizers>
+                        <TapGestureRecognizer Tapped="OnAllPurchasesTapped"
+                                              NumberOfTapsRequired="1" />
+                    </Border.GestureRecognizers>
+                    <Grid ColumnDefinitions="*,Auto" ColumnSpacing="12">
+                        <VerticalStackLayout Grid.Column="0" Spacing="2">
+                            <Label Text="TODAS AS COMPRAS"
+                                   FontSize="13"
+                                   FontAttributes="Bold"
+                                   TextColor="{AppThemeBinding Light={StaticResource Gray600}, Dark={StaticResource Gray300}}" />
+                            <Label x:Name="AllPurchasesLabel"
+                                   FontSize="15"
+                                   VerticalOptions="Center" />
+                        </VerticalStackLayout>
+                        <Label Grid.Column="1"
+                               Text=">"
+                               FontSize="18"
+                               TextColor="{AppThemeBinding Light={StaticResource Gray600}, Dark={StaticResource Gray300}}"
+                               VerticalOptions="Center" />
+                    </Grid>
+                </Border>
 
                 <Button x:Name="EnableAccessButton"
                         Text="Ativar acesso a notificações"

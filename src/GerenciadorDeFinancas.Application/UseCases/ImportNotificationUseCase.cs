@@ -2,6 +2,7 @@ using System.Security.Cryptography;
 using System.Text;
 using GerenciadorDeFinancas.Application.Dtos;
 using GerenciadorDeFinancas.Application.Ports;
+using GerenciadorDeFinancas.Application.Services;
 using GerenciadorDeFinancas.Domain.Abstractions;
 using GerenciadorDeFinancas.Domain.Entities;
 
@@ -62,7 +63,7 @@ public sealed class ImportNotificationUseCase
         System.Diagnostics.Debug.WriteLine($"GDF_Import: cartão resolvido — cardId={card.Id}, last4={card.Last4Digits}");
 
         var merchant = await ResolveMerchantAsync(unitOfWork, parsed, cancellationToken);
-        var statement = await unitOfWork.Statements.GetOpenForCardAsync(card.Id, cancellationToken);
+        var statement = await StatementResolver.ResolveAsync(unitOfWork, card, parsed.Date, cancellationToken);
 
         var purchase = new Purchase(
             cardId: card.Id,
@@ -70,7 +71,7 @@ public sealed class ImportNotificationUseCase
             date: parsed.Date,
             description: parsed.Description,
             merchantId: merchant?.Id,
-            statementId: statement?.Id,
+            statementId: statement.Id,
             bankRefId: parsed.BankRefId,
             dedupHash: dedupHash,
             rawNotificationText: notification.Text,

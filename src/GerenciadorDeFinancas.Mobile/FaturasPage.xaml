@@ -1,0 +1,62 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:converters="clr-namespace:GerenciadorDeFinancas.Converters"
+             xmlns:local="clr-namespace:GerenciadorDeFinancas"
+             x:Class="GerenciadorDeFinancas.FaturasPage"
+             Title="Faturas">
+    <ContentPage.Resources>
+        <converters:MoneyToTextConverter x:Key="MoneyToText" />
+    </ContentPage.Resources>
+
+    <Grid RowDefinitions="Auto,*" Padding="20,12,20,0" RowSpacing="8">
+
+        <Picker x:Name="CardPicker"
+                Grid.Row="0"
+                ItemDisplayBinding="{Binding DisplayName}"
+                SelectedIndexChanged="OnCardSelected" />
+
+        <RefreshView x:Name="Refresh"
+                     Grid.Row="1"
+                     Refreshing="OnRefreshing">
+            <ScrollView>
+                <VerticalStackLayout Padding="0,4" Spacing="12">
+
+                    <CollectionView x:Name="InvoicesView"
+                                    SelectionMode="Single"
+                                    SelectionChanged="OnInvoiceSelected">
+                        <CollectionView.EmptyView>
+                            <Label Text="Nenhuma fatura ainda. Compras capturadas ou lançadas manualmente criam faturas automaticamente."
+                                   FontSize="13"
+                                   TextColor="{AppThemeBinding Light={StaticResource Gray400}, Dark={StaticResource Gray500}}" />
+                        </CollectionView.EmptyView>
+                        <CollectionView.ItemTemplate>
+                            <DataTemplate x:DataType="local:InvoiceRow">
+                                <Grid ColumnDefinitions="*,Auto" ColumnSpacing="12" Padding="0,8">
+                                    <VerticalStackLayout Grid.Column="0" Spacing="2">
+                                        <Label Text="{Binding Title}"
+                                               FontSize="15"
+                                               FontAttributes="Bold" />
+                                        <Label Text="{Binding Detail}"
+                                               FontSize="12"
+                                               TextColor="{AppThemeBinding Light={StaticResource Gray600}, Dark={StaticResource Gray300}}" />
+                                    </VerticalStackLayout>
+                                    <VerticalStackLayout Grid.Column="1" Spacing="4">
+                                        <Label Text="{Binding TotalCents, Converter={StaticResource MoneyToText}}"
+                                               FontSize="15"
+                                               FontAttributes="Bold"
+                                               HorizontalOptions="End" />
+                                        <Label Text="{Binding Status}"
+                                               FontSize="12"
+                                               HorizontalOptions="End" />
+                                    </VerticalStackLayout>
+                                </Grid>
+                            </DataTemplate>
+                        </CollectionView.ItemTemplate>
+                    </CollectionView>
+
+                </VerticalStackLayout>
+            </ScrollView>
+        </RefreshView>
+    </Grid>
+</ContentPage>

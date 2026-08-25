@@ -1,5 +1,7 @@
 using GerenciadorDeFinancas.Application.Dtos;
 using GerenciadorDeFinancas.Domain.Abstractions;
+using GerenciadorDeFinancas.Domain.Enums;
+using GerenciadorDeFinancas.Domain.ValueObjects;
 
 namespace GerenciadorDeFinancas.Application.UseCases;
 
@@ -22,17 +24,38 @@ public sealed class GetPersonDetailUseCase
             return null;
         }
 
-        var classified = await unitOfWork.Purchases.ListClassifiedAsync(cancellationToken);
+        var today = DateOnly.FromDateTime(DateTime.Today);
+        var cards = await unitOfWork.Cards.ListActiveAsync(cancellationToken);
+        var cardTotals = new List<PersonCardTotal>();
+        var currentInvoicePurchases = new List<Domain.Entities.Purchase>();
 
-        var purchases = classified
+        foreach (var card in cards)
+        {
+            var period = StatementPeriodCalculator.Calculate(card.ClosingDay, today);
+            var statement = await unitOfWork.Statements.GetByCardAndYearMonthAsync(card.Id, period.YearMonth, cancellationToken);
+            var invoicePurchases = statement?.Purchases
+                .Where(purchase => purchase.Status == PurchaseStatus.Classified)
+                .ToList() ?? [];
+
+            currentInvoicePurchases.AddRange(invoicePurchases);
+
+            var personTotal = invoicePurchases
+                .SelectMany(purchase => purchase.Shares)
+                .Where(share => share.PersonId == personId)
+                .Sum(share => share.AmountCents);
+
+            if (personTotal > 0)
+            {
+                cardTotals.Add(new PersonCardTotal(card.Id, card.Name, personTotal));
+            }
+        }
+
+        var purchaseItems = currentInvoicePurchases
             .Select(purchase => (
                 Purchase: purchase,
                 Share: purchase.Shares.FirstOrDefault(share => share.PersonId == personId)))
             .Where(item => item.Share is not null)
             .OrderByDescending(item => item.Purchase.Date)
-            .ToList();
-
-        var purchaseItems = purchases
             .Select(item => new PersonPurchaseItem(
                 item.Purchase.Id,
                 item.Purchase.Merchant?.DisplayName ?? item.Purchase.Description,
@@ -43,20 +66,11 @@ public sealed class GetPersonDetailUseCase
                 item.Purchase.Shares.Count))
             .ToList();
 
-        var cardTotals = purchases
-            .GroupBy(item => new { item.Purchase.CardId, CardName = item.Purchase.Card?.Name ?? "Cartão" })
-            .Select(group => new PersonCardTotal(
-                group.Key.CardId,
-                group.Key.CardName,
-                group.Sum(item => item.Share!.AmountCents)))
-            .OrderByDescending(total => total.TotalCents)
-            .ToList();
-
         return new PersonDetail(
             person.Id,
             person.Name,
             person.Color,
-            purchaseItems.Sum(item => item.PersonShareCents),
+            cardTotals.Sum(total => total.TotalCents),
             cardTotals,
             purchaseItems);
     }

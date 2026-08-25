@@ -1,3 +1,4 @@
+using GerenciadorDeFinancas.Application.Services;
 using GerenciadorDeFinancas.Domain.Abstractions;
 using GerenciadorDeFinancas.Domain.Exceptions;
 
@@ -29,6 +30,7 @@ public sealed class ClassifyPurchaseUseCase
             unitOfWork.Purchases.AddShare(share);
         }
 
+        await InstallmentShareReplicator.ReplicateAsync(unitOfWork, purchase, cancellationToken);
         await unitOfWork.SaveChangesAsync(cancellationToken);
     }
 }

@@ -1,0 +1,56 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             x:Class="GerenciadorDeFinancas.ManualPurchaseFormPage"
+             Title="Lançar compra">
+    <ScrollView>
+        <VerticalStackLayout Padding="20" Spacing="8">
+
+            <Label Text="Cartão"
+                   FontSize="13"
+                   TextColor="{AppThemeBinding Light={StaticResource Gray600}, Dark={StaticResource Gray300}}" />
+            <Picker x:Name="CardPicker"
+                    ItemDisplayBinding="{Binding DisplayName}" />
+
+            <Label Text="Valor (R$)"
+                   FontSize="13"
+                   TextColor="{AppThemeBinding Light={StaticResource Gray600}, Dark={StaticResource Gray300}}"
+                   Margin="0,12,0,0" />
+            <Entry x:Name="AmountEntry"
+                   Placeholder="0,00"
+                   Keyboard="Numeric" />
+
+            <Label Text="Data da compra"
+                   FontSize="13"
+                   TextColor="{AppThemeBinding Light={StaticResource Gray600}, Dark={StaticResource Gray300}}"
+                   Margin="0,12,0,0" />
+            <DatePicker x:Name="DatePick" />
+
+            <Label Text="Descrição"
+                   FontSize="13"
+                   TextColor="{AppThemeBinding Light={StaticResource Gray600}, Dark={StaticResource Gray300}}"
+                   Margin="0,12,0,0" />
+            <Entry x:Name="DescriptionEntry"
+                   Placeholder="Ex.: Supermercado, assinatura..." />
+
+            <Label Text="Comerciante (opcional)"
+                   FontSize="13"
+                   TextColor="{AppThemeBinding Light={StaticResource Gray600}, Dark={StaticResource Gray300}}"
+                   Margin="0,12,0,0" />
+            <Entry x:Name="MerchantEntry"
+                   Placeholder="Deixe vazio para usar a descrição" />
+
+            <Label Text="O parcelamento pode ser declarado depois, ao dividir a compra pendente."
+                   FontSize="12"
+                   TextColor="{AppThemeBinding Light={StaticResource Gray400}, Dark={StaticResource Gray500}}"
+                   Margin="0,8,0,0" />
+
+            <Button Text="Salvar"
+                    Clicked="OnSaveClicked"
+                    Margin="0,24,0,0" />
+            <Button Text="Cancelar"
+                    Clicked="OnCancelClicked" />
+
+        </VerticalStackLayout>
+    </ScrollView>
+</ContentPage>

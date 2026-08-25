@@ -1,3 +1,4 @@
+using GerenciadorDeFinancas.Application.Services;
 using GerenciadorDeFinancas.Domain.Abstractions;
 using GerenciadorDeFinancas.Domain.Exceptions;
 using GerenciadorDeFinancas.Domain.ValueObjects;
@@ -38,6 +39,7 @@ public sealed class SplitPurchaseUseCase
         var shares = personIds.Select((personId, index) => (personId, parts[index].Cents)).ToList();
 
         ApplyShares(unitOfWork, purchase, shares);
+        await InstallmentShareReplicator.ReplicateAsync(unitOfWork, purchase, cancellationToken);
         await unitOfWork.SaveChangesAsync(cancellationToken);
     }
 
@@ -58,6 +60,7 @@ public sealed class SplitPurchaseUseCase
         await ValidatePeopleAsync(unitOfWork, shares.Select(share => share.PersonId), cancellationToken);
 
         ApplyShares(unitOfWork, purchase, shares);
+        await InstallmentShareReplicator.ReplicateAsync(unitOfWork, purchase, cancellationToken);
         await unitOfWork.SaveChangesAsync(cancellationToken);
     }
 
@@ -74,7 +77,6 @@ public sealed class SplitPurchaseUseCase
 
         purchase.MarkClassified();
     }
-
     private static async Task ValidatePeopleAsync(
         IUnitOfWork unitOfWork,
         IEnumerable<Guid> personIds,

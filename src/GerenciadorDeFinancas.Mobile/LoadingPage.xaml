@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             x:Class="GerenciadorDeFinancas.LoadingPage"
+             Shell.NavBarIsVisible="False">
+    <VerticalStackLayout VerticalOptions="Center" HorizontalOptions="Center" Spacing="16">
+        <ActivityIndicator IsRunning="True"
+                           Color="{AppThemeBinding Light={StaticResource Gray900}, Dark={StaticResource Gray100}}"
+                           HorizontalOptions="Center" />
+        <Label Text="Carregando..."
+               FontSize="16"
+               HorizontalOptions="Center"
+               TextColor="{AppThemeBinding Light={StaticResource Gray600}, Dark={StaticResource Gray300}}" />
+    </VerticalStackLayout>
+</ContentPage>

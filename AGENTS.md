@@ -37,6 +37,8 @@ opção de cartão ("Genérico / Outro banco").
   no DI + package em `KnownBanks`.
 - Casos de uso diretos, **sem MediatR** (ADR-006).
 - Arquitetura em camadas, dependências apontando para dentro (ADR-007).
+- Faturas atribuídas automaticamente (`StatementResolver`); parcelamento
+  declara pelo usuário, não por parser (ADR-008).
 
 ## Estrutura
 
@@ -71,7 +73,9 @@ export DOTNET="/mnt/c/Program Files/dotnet/dotnet.exe"
   ```bash
   "$DOTNET" build GerenciadorDeFinancas.slnx -p:AndroidSdkDirectory="D:\AndroidSdk"
   ```
-- Build só do app Android:
+- Build só do app Android (no Linux/WSL o Mobile só tem o TFM
+  `net10.0-android`; ios/maccatalyst/windows são adicionados condicionalmente
+  por OS no csproj):
   ```bash
   "$DOTNET" build src/GerenciadorDeFinancas.Mobile/GerenciadorDeFinancas.csproj \
     -f net10.0-android -p:AndroidSdkDirectory="D:\AndroidSdk"
@@ -126,7 +130,11 @@ export DOTNET="/mnt/c/Program Files/dotnet/dotnet.exe"
 - Fluxo de pós-captura é centralizado: `ImportNotificationUseCase` →
   `IClassificationPrompter` → `NotificationClassificationPrompter` (posta
   notificação com até 3 botões de `NotificationButtons`, ou aviso "cadastre
-  botões"). Não duplicar esse chamado nos callers.
+  botões"). Não duplicar esse chamado nos callers. Botões rápidos chegam ao app
+  como intents com extras `action` (`OPEN_PENDING`, `OPEN_PURCHASE`,
+  `OPEN_BUTTONS`) e `purchase_id`, tratados em `MainActivity`.
+- Build DEBUG semeia dados de demonstração no start (`DemoDataInitializer`
+  chamado em `App.xaml.cs`) — dados "fantasma" em debug são esperados.
 - `POST_NOTIFICATIONS` (Android 13+) é solicitada uma vez no start do app;
   negada = `Notify()` descarta silenciosamente. Depurar notificações com
   `adb logcat -s GDF_Capture GDF_Classify`.
@@ -134,7 +142,9 @@ export DOTNET="/mnt/c/Program Files/dotnet/dotnet.exe"
   notificações"** manualmente no sistema Android — a permissão
   `BIND_NOTIFICATION_LISTENER_SERVICE` não tem prompt em runtime.
 - **Xiaomi/MIUI**: o MIUI mata serviços em background agressivamente. O
-  `PurchaseNotificationListener` usa foreground service para sobreviver, mas
+  `PurchaseNotificationListener` (classe no arquivo
+  `Platforms/Android/NotificationListenerService.cs` — nome de arquivo ≠ nome de
+  classe) usa foreground service para sobreviver, mas
   o usuário também precisa habilitar: (1) Inicialização automática do app,
   (2) Bateria > Sem restrições, (3) Trancar o app no recent apps.
 - Idioma das mensagens de erro de domínio: português.

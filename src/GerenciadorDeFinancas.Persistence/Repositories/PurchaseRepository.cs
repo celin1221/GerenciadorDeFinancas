@@ -64,11 +64,30 @@ public sealed class PurchaseRepository : IPurchaseRepository
             .OrderByDescending(purchase => purchase.Date)
             .ToListAsync(cancellationToken);
 
+    public async Task<IReadOnlyList<Purchase>> ListByGroupAsync(Guid installmentGroupId, CancellationToken cancellationToken = default) =>
+        await _context.Purchases
+            .Include(purchase => purchase.Card)
+            .Include(purchase => purchase.Merchant)
+            .Include(purchase => purchase.Shares)
+                .ThenInclude(share => share.Person)
+            .Where(purchase => purchase.InstallmentGroupId == installmentGroupId)
+            .OrderBy(purchase => purchase.InstallmentNumber)
+            .ToListAsync(cancellationToken);
+
+    public async Task<IReadOnlyList<Purchase>> ListWithoutStatementAsync(CancellationToken cancellationToken = default) =>
+        await _context.Purchases
+            .Include(purchase => purchase.Card)
+            .Where(purchase => purchase.StatementId == null)
+            .OrderBy(purchase => purchase.Date)
+            .ToListAsync(cancellationToken);
+
     public void Add(Purchase purchase) => _context.Purchases.Add(purchase);
 
     public void AddShare(PurchaseShare share) => _context.PurchaseShares.Add(share);
 
     public void Update(Purchase purchase) => _context.Purchases.Update(purchase);
+
+    public void Remove(Purchase purchase) => _context.Purchases.Remove(purchase);
 
     public async Task<bool> HasUnpaidSharesForPersonAsync(Guid personId, CancellationToken cancellationToken = default) =>
         await _context.PurchaseShares

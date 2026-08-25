@@ -27,7 +27,9 @@ public sealed class ListPendingPurchasesUseCase
                 purchase.Card?.Name ?? "Cartão",
                 purchase.AmountCents,
                 purchase.Date,
-                purchase.Card!.OwnerPersonId))
+                purchase.Card!.OwnerPersonId,
+                purchase.InstallmentNumber,
+                purchase.TotalInstallments))
             .ToList();
     }
 }

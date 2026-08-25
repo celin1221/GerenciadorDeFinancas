@@ -18,11 +18,17 @@ public interface IPurchaseRepository
 
     Task<IReadOnlyList<Purchase>> ListByCardAsync(Guid cardId, CancellationToken cancellationToken = default);
 
+    Task<IReadOnlyList<Purchase>> ListByGroupAsync(Guid installmentGroupId, CancellationToken cancellationToken = default);
+
+    Task<IReadOnlyList<Purchase>> ListWithoutStatementAsync(CancellationToken cancellationToken = default);
+
     void Add(Purchase purchase);
 
     void AddShare(PurchaseShare share);
 
     void Update(Purchase purchase);
+
+    void Remove(Purchase purchase);
 
     Task<bool> HasUnpaidSharesForPersonAsync(Guid personId, CancellationToken cancellationToken = default);
 }

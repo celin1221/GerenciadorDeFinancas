@@ -23,6 +23,10 @@
             Title="Cartões"
             ContentTemplate="{DataTemplate local:CardsPage}"
             Route="CardsPage" />
+        <ShellContent
+            Title="Faturas"
+            ContentTemplate="{DataTemplate local:FaturasPage}"
+            Route="FaturasPage" />
     </TabBar>
 
 </Shell>
